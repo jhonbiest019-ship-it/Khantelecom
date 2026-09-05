@@ -859,15 +859,18 @@
 
             // 1. Add / Edit Customer Form Submit
             $(document).on('click', '#btn-add-customer', function() {
+                self.populateCustomerAndPackageSelects();
                 $('#kt-customer-form')[0].reset();
                 $('#kt-customer-form input[name="id"]').val(0);
                 $('#kt-customer-form input[name="customer_code"]').val('KT-' + Math.floor(1001 + Math.random() * 9000));
                 $('#customer-modal-title').text('Register New Subscriber');
                 $('#btn-delete-customer-modal').hide();
-                $('#kt-customer-modal, #kt-modal-backdrop').show();
+                $('#kt-modal-backdrop').show();
+                $('#kt-customer-modal').css('display', 'flex');
             });
 
             $(document).on('click', '.btn-edit-customer', function() {
+                self.populateCustomerAndPackageSelects();
                 var data = $(this).data('json');
                 $('#kt-customer-form input[name="id"]').val(data.id);
                 $('#kt-customer-form input[name="customer_code"]').val(data.customer_code);
@@ -884,7 +887,8 @@
 
                 $('#customer-modal-title').text('Edit Subscriber Profile (' + data.customer_code + ')');
                 $('#btn-delete-customer-modal').show();
-                $('#kt-customer-modal, #kt-modal-backdrop').show();
+                $('#kt-modal-backdrop').show();
+                $('#kt-customer-modal').css('display', 'flex');
             });
 
             // Delete Subscriber from Modal Footer
@@ -894,15 +898,18 @@
                 if (id > 0 && confirm('Are you sure you want to delete subscriber profile: ' + name + '?')) {
                     var u = self.getUserSession();
                     $.post(ktConfig.ajaxUrl, { action: 'kt_delete_customer', nonce: ktConfig.nonce, customer_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
-                        if (res.success) {
+                        if (typeof res === 'string') { try { res = JSON.parse(res); } catch(e) {} }
+                        if (res && res.success) {
                             alert('✅ ' + res.data.message);
                             $('#kt-customer-modal, #kt-modal-backdrop').hide();
                             self.fetchCustomers();
                             self.populateCustomerAndPackageSelects();
                             self.fetchDashboardStats(true);
                         } else {
-                            alert(res.data.message || 'Error deleting customer');
+                            alert((res && res.data && res.data.message) ? res.data.message : 'Error deleting customer');
                         }
+                    }, 'json').fail(function(xhr, status, err) {
+                        alert('❌ Server communication error while deleting customer: ' + (err || status));
                     });
                 }
             });
@@ -914,32 +921,44 @@
                 if (confirm('Are you sure you want to delete subscriber profile: ' + name + '?')) {
                     var u = self.getUserSession();
                     $.post(ktConfig.ajaxUrl, { action: 'kt_delete_customer', nonce: ktConfig.nonce, customer_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
-                        if (res.success) {
+                        if (typeof res === 'string') { try { res = JSON.parse(res); } catch(e) {} }
+                        if (res && res.success) {
                             alert('✅ ' + res.data.message);
                             self.fetchCustomers();
                             self.populateCustomerAndPackageSelects();
                             self.fetchDashboardStats(true);
                         } else {
-                            alert(res.data.message || 'Error deleting customer');
+                            alert((res && res.data && res.data.message) ? res.data.message : 'Error deleting customer');
                         }
+                    }, 'json').fail(function(xhr, status, err) {
+                        alert('❌ Server communication error while deleting customer: ' + (err || status));
                     });
                 }
             });
 
             $(document).on('submit', '#kt-customer-form', function(e) {
                 e.preventDefault();
+                var $submitBtn = $(this).find('button[type="submit"]');
+                var origText = $submitBtn.text();
+                $submitBtn.prop('disabled', true).text('Saving...');
+
                 var user = self.getUserSession();
                 var data = $(this).serialize() + '&action=kt_save_customer&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
                 $.post(ktConfig.ajaxUrl, data, function(res) {
-                    if (res.success) {
+                    $submitBtn.prop('disabled', false).text(origText);
+                    if (typeof res === 'string') { try { res = JSON.parse(res); } catch(e) {} }
+                    if (res && res.success) {
                         alert('✅ ' + res.data.message);
                         $('#kt-customer-modal, #kt-modal-backdrop').hide();
                         self.fetchCustomers();
                         self.populateCustomerAndPackageSelects();
                         self.fetchDashboardStats(true);
                     } else {
-                        alert(res.data.message || 'Error saving customer');
+                        alert((res && res.data && res.data.message) ? res.data.message : 'Error saving customer');
                     }
+                }, 'json').fail(function(xhr, status, err) {
+                    $submitBtn.prop('disabled', false).text(origText);
+                    alert('❌ Server communication error while saving subscriber: ' + (err || status));
                 });
             });
 
@@ -949,7 +968,8 @@
                 $('#kt-package-form input[name="id"]').val(0);
                 $('#package-modal-title').text('Create Package Tier');
                 $('#pkg-margin-preview').text('PKR 1000.00');
-                $('#kt-package-modal, #kt-modal-backdrop').show();
+                $('#kt-modal-backdrop').show();
+                $('#kt-package-modal').css('display', 'flex');
             });
 
             $(document).on('click', '.btn-edit-package', function() {
@@ -965,23 +985,34 @@
                 $('#pkg-margin-preview').text('PKR ' + margin.toFixed(2));
 
                 $('#package-modal-title').text('Edit Package Tier');
-                $('#kt-package-modal, #kt-modal-backdrop').show();
+                $('#kt-modal-backdrop').show();
+                $('#kt-package-modal').css('display', 'flex');
             });
 
             $(document).on('submit', '#kt-package-form', function(e) {
                 e.preventDefault();
+                var $submitBtn = $(this).find('button[type="submit"]');
+                var origText = $submitBtn.text();
+                $submitBtn.prop('disabled', true).text('Saving...');
+
                 var user = self.getUserSession();
                 var data = $(this).serialize() + '&action=kt_save_package&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
                 $.post(ktConfig.ajaxUrl, data, function(res) {
-                    if (res.success) {
+                    $submitBtn.prop('disabled', false).text(origText);
+                    if (typeof res === 'string') { try { res = JSON.parse(res); } catch(e) {} }
+                    if (res && res.success) {
                         alert('✅ ' + res.data.message);
                         $('#kt-package-modal, #kt-modal-backdrop').hide();
                         self.fetchPackages();
+                        self.fetchCustomers();
                         self.populateCustomerAndPackageSelects();
                         self.fetchDashboardStats(true);
                     } else {
-                        alert(res.data.message || 'Error saving package');
+                        alert((res && res.data && res.data.message) ? res.data.message : 'Error saving package');
                     }
+                }, 'json').fail(function(xhr, status, err) {
+                    $submitBtn.prop('disabled', false).text(origText);
+                    alert('❌ Server communication error while saving package: ' + (err || status));
                 });
             });
 

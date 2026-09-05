@@ -218,7 +218,8 @@ function processRequest(data, res) {
         });
         res.end(JSON.stringify({ success: true, data: customerList }));
     } else if (action === 'kt_save_customer') {
-        const id = parseInt(data.customer_id || data.id) || 0;
+        const rawId = (data.id !== undefined && data.id !== '0' && data.id !== 0 && data.id !== '') ? data.id : data.customer_id;
+        const id = parseInt(rawId) || 0;
         const customCode = (data.customer_code || '').trim();
         const pkgId = parseInt(data.package_id) || 0;
         const pkg = packages.find(p => p.id === pkgId);
@@ -272,7 +273,8 @@ function processRequest(data, res) {
             res.end(JSON.stringify({ success: true, data: { message: `Subscriber ${newCust.full_name} registered successfully & activated in ERP!` } }));
         }
     } else if (action === 'kt_delete_customer') {
-        const id = parseInt(data.customer_id || data.id);
+        const rawId = (data.id !== undefined && data.id !== '0' && data.id !== 0 && data.id !== '') ? data.id : data.customer_id;
+        const id = parseInt(rawId) || 0;
         const idx = customers.findIndex(c => c.id === id);
         if (idx !== -1) {
             const deletedName = customers[idx].full_name;
@@ -295,7 +297,8 @@ function processRequest(data, res) {
             }
         }));
     } else if (action === 'kt_save_package') {
-        const id = parseInt(data.package_id || data.id) || 0;
+        const rawId = (data.id !== undefined && data.id !== '0' && data.id !== 0 && data.id !== '') ? data.id : data.package_id;
+        const id = parseInt(rawId) || 0;
         const costPrice = parseFloat(data.cost_price) || 0;
         const salePrice = parseFloat(data.sale_price) || 0;
         const margin = Math.max(0, salePrice - costPrice);
@@ -339,7 +342,8 @@ function processRequest(data, res) {
             res.end(JSON.stringify({ success: true, data: { message: `New package "${newPkg.package_name}" added successfully & active!` } }));
         }
     } else if (action === 'kt_delete_package') {
-        const id = parseInt(data.package_id || data.id);
+        const rawId = (data.id !== undefined && data.id !== '0' && data.id !== 0 && data.id !== '') ? data.id : data.package_id;
+        const id = parseInt(rawId) || 0;
         const idx = packages.findIndex(p => p.id === id);
         if (idx !== -1) {
             const pkgName = packages[idx].package_name;
