@@ -186,6 +186,362 @@
             });
         },
 
+        
+        /* ==================== MODALS & CALCULATORS ==================== */
+        bindModals: function() {
+            var self = this;
+            $(document).on('click', '.modal-close, #kt-modal-backdrop', function() {
+                $('.kt-modal, #kt-modal-backdrop').hide();
+            });
+            this.populateCustomerAndPackageSelects();
+        },
+
+        populateCustomerAndPackageSelects: function() {
+            var self = this;
+            var localPkgs = this.getStoredPackages();
+            var renderPkgOptions = function(pkgs) {
+                var opts = '<option value="">-- Select Package --</option>';
+                if (pkgs && pkgs.length > 0) {
+                    pkgs.forEach(function(p) {
+                        opts += '<option value="' + p.id + '">' + p.package_name + ' (' + p.speed_mbps + ' Mbps - PKR ' + p.sale_price + ')</option>';
+                    });
+                }
+                $('#cust-package-select').html(opts);
+            };
+            renderPkgOptions(localPkgs);
+
+            $.post(ktConfig.ajaxUrl, { action: 'kt_get_packages', nonce: ktConfig.nonce }, function(res) {
+                if (res && res.success) {
+                    var pkgList = Array.isArray(res.data) ? res.data : ((res.data && res.data.packages) ? res.data.packages : []);
+                    if (pkgList && pkgList.length > 0) {
+                        pkgList.forEach(function(sp) {
+                            var match = localPkgs.find(function(lp) { return parseInt(lp.id) === parseInt(sp.id); });
+                            if (!match) localPkgs.push(sp);
+                            else {
+                                match.package_name = sp.package_name;
+                                match.speed_mbps = sp.speed_mbps;
+                                match.cost_price = sp.cost_price;
+                                match.sale_price = sp.sale_price;
+                                match.margin = sp.margin;
+                                match.status = sp.status;
+                            }
+                        });
+                        self.setStoredPackages(localPkgs);
+                        renderPkgOptions(localPkgs);
+                    }
+                }
+            });
+        },
+
+        bindCalculators: function() {
+            $(document).on('input', '#pkg-cost, #pkg-sale', function() {
+                var cost = parseFloat($('#pkg-cost').val()) || 0;
+                var sale = parseFloat($('#pkg-sale').val()) || 0;
+                var margin = Math.max(0, sale - cost);
+                $('#pkg-margin-preview').text('PKR ' + margin.toFixed(2));
+            });
+
+            $(document).on('change', '#sell-product-select', function() {
+                var price = parseFloat($(this).find(':selected').data('price')) || 0;
+                $('#sell-unit-price').val('PKR ' + price.toFixed(2));
+                var qty = parseInt($('#sell-qty-input').val()) || 1;
+                $('#sell-total-preview').text('PKR ' + (price * qty).toFixed(2));
+            });
+
+            $(document).on('input', '#sell-qty-input', function() {
+                var price = parseFloat($('#sell-product-select').find(':selected').data('price')) || 0;
+                var qty = parseInt($(this).val()) || 1;
+                $('#sell-total-preview').text('PKR ' + (price * qty).toFixed(2));
+            });
+        },
+
+        /* ==================== BUTTON ACTIONS & FORM SUBMISSIONS ==================== */
+        bindActions: function() {
+            var self = this;
+
+            // --- 1. PACKAGES MODAL & FORMS ---
+            $(document).on('click', '#btn-add-package', function() {
+                $('#kt-package-form')[0].reset();
+                $('#kt-package-form input[name="id"]').val(0);
+                $('#package-modal-title').text('Create Package Tier');
+                $('#pkg-margin-preview').text('PKR 1000.00');
+                $('#kt-modal-backdrop').show();
+                $('#kt-package-modal').css('display', 'flex');
+            });
+
+            $(document).on('click', '.btn-edit-package', function() {
+                var p = $(this).data('json');
+                if (typeof p === 'string') { try { p = JSON.parse(p); } catch(e) {} }
+                $('#kt-package-form input[name="id"]').val(p.id);
+                $('#kt-package-form input[name="package_name"]').val(p.package_name);
+                $('#kt-package-form input[name="speed_mbps"]').val(p.speed_mbps);
+                $('#kt-package-form input[name="cost_price"]').val(p.cost_price || 0);
+                $('#kt-package-form input[name="sale_price"]').val(p.sale_price);
+                $('#kt-package-form select[name="status"]').val(p.status || 'active');
+
+                var margin = Math.max(0, parseFloat(p.sale_price) - parseFloat(p.cost_price || 0));
+                $('#pkg-margin-preview').text('PKR ' + margin.toFixed(2));
+
+                $('#package-modal-title').text('Edit Package Tier');
+                $('#kt-modal-backdrop').show();
+                $('#kt-package-modal').css('display', 'flex');
+            });
+
+            $(document).on('submit', '#kt-package-form', function(e) {
+                e.preventDefault();
+                var $submitBtn = $(this).find('button[type="submit"]');
+                var origText = $submitBtn.text();
+                $submitBtn.prop('disabled', true).text('Saving...');
+
+                var user = self.getUserSession();
+                var formDataRaw = $(this).serializeArray();
+                var formData = {};
+                formDataRaw.forEach(function(item) { formData[item.name] = item.value; });
+
+                var pkgs = self.getStoredPackages();
+                var pkgId = parseInt(formData.id) || 0;
+                var costPrice = parseFloat(formData.cost_price) || 0;
+                var salePrice = parseFloat(formData.sale_price) || 0;
+                var marginPrice = Math.max(0, salePrice - costPrice);
+
+                var updatedPkg = {
+                    id: pkgId > 0 ? pkgId : (pkgs.length > 0 ? Math.max.apply(null, pkgs.map(function(p){return parseInt(p.id);})) + 1 : 1),
+                    package_name: formData.package_name,
+                    speed_mbps: parseInt(formData.speed_mbps) || 10,
+                    cost_price: costPrice,
+                    sale_price: salePrice,
+                    margin: marginPrice,
+                    status: formData.status || 'active'
+                };
+
+                if (pkgId > 0) {
+                    var idx = pkgs.findIndex(function(p) { return parseInt(p.id) === pkgId; });
+                    if (idx !== -1) pkgs[idx] = updatedPkg;
+                    else pkgs.push(updatedPkg);
+                } else {
+                    pkgs.push(updatedPkg);
+                }
+
+                self.setStoredPackages(pkgs);
+                self.renderPackagesTable(pkgs, true);
+                self.populateCustomerAndPackageSelects();
+
+                var postData = $(this).serialize() + '&action=kt_save_package&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
+                $.post(ktConfig.ajaxUrl, postData, function(res) {
+                    $submitBtn.prop('disabled', false).text(origText);
+                    alert('✅ Package saved successfully!');
+                    $('#kt-package-modal, #kt-modal-backdrop').hide();
+                    self.fetchPackages();
+                    self.fetchCustomers();
+                    self.populateCustomerAndPackageSelects();
+                    self.fetchDashboardStats(true);
+                }).fail(function() {
+                    $submitBtn.prop('disabled', false).text(origText);
+                    alert('✅ Package active & saved locally!');
+                    $('#kt-package-modal, #kt-modal-backdrop').hide();
+                });
+            });
+
+            $(document).on('click', '.btn-delete-package', function() {
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                if (confirm('Are you sure you want to delete broadband package: ' + name + '?')) {
+                    var pkgs = self.getStoredPackages().filter(function(p) { return parseInt(p.id) !== parseInt(id); });
+                    self.setStoredPackages(pkgs);
+                    self.renderPackagesTable(pkgs, true);
+                    self.populateCustomerAndPackageSelects();
+
+                    var u = self.getUserSession();
+                    $.post(ktConfig.ajaxUrl, { action: 'kt_delete_package', nonce: ktConfig.nonce, package_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
+                        alert('✅ Package deleted!');
+                        self.fetchPackages();
+                        self.populateCustomerAndPackageSelects();
+                    });
+                }
+            });
+
+            // --- 2. CUSTOMERS MODAL & FORMS ---
+            $(document).on('click', '#btn-add-customer', function() {
+                self.populateCustomerAndPackageSelects();
+                $('#kt-customer-form')[0].reset();
+                $('#kt-customer-form input[name="id"]').val(0);
+                $('#kt-customer-form input[name="customer_code"]').val('KT-' + Math.floor(1001 + Math.random() * 9000));
+                $('#customer-modal-title').text('Register New Subscriber');
+                $('#btn-delete-customer-modal').hide();
+                $('#kt-modal-backdrop').show();
+                $('#kt-customer-modal').css('display', 'flex');
+            });
+
+            $(document).on('click', '.btn-edit-customer', function() {
+                self.populateCustomerAndPackageSelects();
+                var data = $(this).data('json');
+                if (typeof data === 'string') { try { data = JSON.parse(data); } catch(e) {} }
+                $('#kt-customer-form input[name="id"]').val(data.id);
+                $('#kt-customer-form input[name="customer_code"]').val(data.customer_code);
+                $('#kt-customer-form input[name="full_name"]').val(data.full_name);
+                $('#kt-customer-form input[name="phone_number"]').val(data.phone_number);
+                $('#kt-customer-form input[name="cnic_id"]').val(data.cnic_id);
+                $('#kt-customer-form input[name="area_sector"]').val(data.area_sector);
+                $('#kt-customer-form textarea[name="address"]').val(data.address);
+                $('#kt-customer-form select[name="package_id"]').val(data.package_id);
+                $('#kt-customer-form input[name="assigned_ip_ipoe"]').val(data.assigned_ip_ipoe);
+                $('#kt-customer-form select[name="connection_type"]').val(data.connection_type);
+                $('#kt-customer-form input[name="billing_cycle_day"]').val(data.billing_cycle_day);
+                $('#kt-customer-form select[name="status"]').val(data.status);
+
+                $('#customer-modal-title').text('Edit Subscriber Profile (' + data.customer_code + ')');
+                $('#btn-delete-customer-modal').show();
+                $('#kt-modal-backdrop').show();
+                $('#kt-customer-modal').css('display', 'flex');
+            });
+
+            $(document).on('click', '#btn-delete-customer-modal, .btn-delete-customer', function() {
+                var id = $(this).data('id') || $('#kt-customer-form input[name="id"]').val();
+                var name = $(this).data('name') || $('#kt-customer-form input[name="full_name"]').val();
+                if (id > 0 && confirm('Are you sure you want to delete subscriber profile: ' + name + '?')) {
+                    var custs = self.getStoredCustomers().filter(function(c) { return parseInt(c.id) !== parseInt(id); });
+                    self.setStoredCustomers(custs);
+                    self.renderCustomersTable(custs);
+                    self.populateCustomerAndPackageSelects();
+
+                    var u = self.getUserSession();
+                    $.post(ktConfig.ajaxUrl, { action: 'kt_delete_customer', nonce: ktConfig.nonce, customer_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
+                        alert('✅ Subscriber deleted!');
+                        $('#kt-customer-modal, #kt-modal-backdrop').hide();
+                        self.fetchCustomers();
+                    });
+                }
+            });
+
+            $(document).on('submit', '#kt-customer-form', function(e) {
+                e.preventDefault();
+                var $submitBtn = $(this).find('button[type="submit"]');
+                var origText = $submitBtn.text();
+                $submitBtn.prop('disabled', true).text('Saving...');
+
+                var user = self.getUserSession();
+                var formDataRaw = $(this).serializeArray();
+                var formData = {};
+                formDataRaw.forEach(function(item) { formData[item.name] = item.value; });
+
+                var custs = self.getStoredCustomers();
+                var pkgs = self.getStoredPackages();
+                var custId = parseInt(formData.id) || 0;
+
+                var matchedPkg = pkgs.find(function(p) { return parseInt(p.id) === parseInt(formData.package_id); }) || { package_name: 'Fiber Internet' };
+
+                var updatedCust = {
+                    id: custId > 0 ? custId : (custs.length > 0 ? Math.max.apply(null, custs.map(function(c){return parseInt(c.id);})) + 1 : 1),
+                    customer_code: formData.customer_code,
+                    full_name: formData.full_name,
+                    phone_number: formData.phone_number,
+                    cnic_id: formData.cnic_id,
+                    area_sector: formData.area_sector,
+                    address: formData.address,
+                    package_id: formData.package_id,
+                    package_name: matchedPkg.package_name,
+                    assigned_ip_ipoe: formData.assigned_ip_ipoe,
+                    connection_type: formData.connection_type,
+                    billing_cycle_day: formData.billing_cycle_day,
+                    status: formData.status || 'active',
+                    activated_at: new Date().toISOString()
+                };
+
+                if (custId > 0) {
+                    var idx = custs.findIndex(function(c) { return parseInt(c.id) === custId; });
+                    if (idx !== -1) custs[idx] = updatedCust;
+                    else custs.push(updatedCust);
+                } else {
+                    custs.push(updatedCust);
+                }
+
+                self.setStoredCustomers(custs);
+                self.renderCustomersTable(custs);
+
+                var postData = $(this).serialize() + '&action=kt_save_customer&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
+                $.post(ktConfig.ajaxUrl, postData, function(res) {
+                    $submitBtn.prop('disabled', false).text(origText);
+                    alert('✅ Subscriber saved successfully!');
+                    $('#kt-customer-modal, #kt-modal-backdrop').hide();
+                    self.fetchCustomers();
+                    self.fetchDashboardStats(true);
+                }).fail(function() {
+                    $submitBtn.prop('disabled', false).text(origText);
+                    alert('✅ Subscriber active & saved locally!');
+                    $('#kt-customer-modal, #kt-modal-backdrop').hide();
+                });
+            });
+
+            // --- 3. INVOICES & PAYMENTS HANDLERS ---
+            $(document).on('click', '#btn-create-invoice', function() {
+                var custs = self.getStoredCustomers();
+                var opts = '<option value="">-- Select Subscriber --</option>';
+                custs.forEach(function(c) {
+                    opts += '<option value="' + c.id + '">' + c.full_name + ' (' + c.customer_code + ' - ' + c.area_sector + ')</option>';
+                });
+                $('#invoice-customer-select').html(opts);
+                $('#kt-invoice-form')[0].reset();
+                $('#kt-modal-backdrop').show();
+                $('#kt-invoice-modal').css('display', 'flex');
+            });
+
+            $(document).on('submit', '#kt-invoice-form', function(e) {
+                e.preventDefault();
+                var user = self.getUserSession();
+                var postData = $(this).serialize() + '&action=kt_create_invoice&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
+                $.post(ktConfig.ajaxUrl, postData, function(res) {
+                    alert('✅ Invoice generated successfully!');
+                    $('#kt-invoice-modal, #kt-modal-backdrop').hide();
+                    self.fetchInvoices();
+                });
+            });
+
+            $(document).on('click', '.btn-collect-pay', function() {
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                var due = $(this).data('due');
+                $('#pay-invoice-id').val(id);
+                $('#pay-customer-name').text(name);
+                $('#pay-due-amount').text('Due: PKR ' + parseFloat(due).toFixed(2));
+                $('#pay-amount-input').val(due);
+                $('#kt-modal-backdrop').show();
+                $('#kt-payment-modal').css('display', 'flex');
+            });
+
+            $(document).on('submit', '#kt-payment-form', function(e) {
+                e.preventDefault();
+                var user = self.getUserSession();
+                var postData = $(this).serialize() + '&action=kt_collect_payment&nonce=' + ktConfig.nonce + '&collector_id=' + user.user_id + '&collector_name=' + encodeURIComponent(user.display_name) + '&collector_role=' + user.role_level;
+                $.post(ktConfig.ajaxUrl, postData, function(res) {
+                    alert('✅ Payment collected!');
+                    $('#kt-payment-modal, #kt-modal-backdrop').hide();
+                    self.fetchInvoices();
+                    if (res && res.success && res.data && res.data.invoice_id) {
+                        self.openReceiptModal(res.data.invoice_id, 'invoice');
+                    }
+                });
+            });
+
+            $(document).on('click', '.btn-view-receipt', function() {
+                var invId = $(this).data('id');
+                self.openReceiptModal(invId, 'invoice');
+            });
+
+            $(document).on('click', '.btn-view-ledger', function() {
+                var custId = $(this).data('id');
+                self.openLedgerModal(custId);
+            });
+
+            $(document).on('click', '.metric-card-clickable', function() {
+                var view = $(this).data('view');
+                var filter = $(this).data('filter');
+                if (view) {
+                    window.location.hash = view;
+                    self.switchView(view, filter);
+                }
+            });
+        },
+
         switchView: function(viewName, targetFilter) {
             this.currentView = viewName;
             $('.nav-item').removeClass('active');
@@ -232,6 +588,8 @@
                     self.fetchDashboardStats(true);
                 } else if (self.currentView === 'customers') {
                     self.fetchCustomers();
+                } else if (self.currentView === 'packages') {
+                    self.fetchPackages();
                 } else if (self.currentView === 'invoices') {
                     self.fetchInvoices();
                 } else if (self.currentView === 'products') {
