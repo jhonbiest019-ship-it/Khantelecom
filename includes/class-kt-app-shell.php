@@ -565,7 +565,7 @@ class KT_App_Shell {
 
             <!-- 11. Change Super Admin Password Modal -->
             <div id="kt-change-password-modal" class="kt-modal" style="display: none;">
-                <div class="modal-content" style="max-width: 480px;">
+                <div class="modal-content">
                     <div class="modal-header">
                         <h3>Change Super Admin Password & Credentials</h3>
                         <button class="btn-close modal-close">&times;</button>

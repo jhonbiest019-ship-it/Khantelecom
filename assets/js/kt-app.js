@@ -95,7 +95,8 @@
                 $('#change-pass-username').val(u.user_login || 'saif');
                 $('#change-pass-new, #change-pass-confirm').attr('type', 'password');
                 $('.btn-toggle-pass').text('👁️');
-                $('#kt-change-password-modal, #kt-modal-backdrop').show();
+                $('#kt-modal-backdrop').show();
+                $('#kt-change-password-modal').css('display', 'flex');
             });
 
             // Toggle Password Eye Visibility

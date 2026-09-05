@@ -480,24 +480,23 @@ body.kt-app-body {
 .kt-modal-backdrop {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(6px);
-    z-index: 200;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 9998;
 }
 
 .kt-modal {
     position: fixed;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 650px;
+    width: 92%;
+    max-width: 580px;
     max-height: 90vh;
     background: #161b22;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
-    z-index: 210;
-    display: flex;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 1px rgba(255, 255, 255, 0.2);
+    z-index: 9999;
     flex-direction: column;
     overflow: hidden;
 }
@@ -505,6 +504,7 @@ body.kt-app-body {
 .modal-content {
     display: flex;
     flex-direction: column;
+    width: 100%;
     height: 100%;
     max-height: 85vh;
 }
