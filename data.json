@@ -107,6 +107,15 @@
       "sale_price": 3000,
       "margin": 1500,
       "status": "active"
+    },
+    {
+      "id": 13,
+      "package_name": "LocalhostTest100Mbps",
+      "speed_mbps": 100,
+      "cost_price": 3000,
+      "sale_price": 5500,
+      "margin": 2500,
+      "status": "active"
     }
   ],
   "customers": [
@@ -173,6 +182,22 @@
       "billing_cycle_day": 5,
       "status": "active",
       "activated_at": "2026-09-05T18:56:41.600Z"
+    },
+    {
+      "id": 5,
+      "customer_code": "KT-9999",
+      "full_name": "LocalhostUser",
+      "phone_number": "03009999999",
+      "cnic_id": "",
+      "area_sector": "SectorF11",
+      "address": "",
+      "package_id": 1,
+      "package_name": "10 Mbps Fiber Starter VIP",
+      "assigned_ip_ipoe": "",
+      "connection_type": "Fiber_FTTH",
+      "billing_cycle_day": 1,
+      "status": "active",
+      "activated_at": "2026-09-05T20:04:18.286Z"
     }
   ],
   "invoices": [],
@@ -189,6 +214,24 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": 17,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "customer_create",
+      "description": "Registered new subscriber: LocalhostUser (KT-9999)",
+      "created_at": "9/6/2026, 1:04:18 AM"
+    },
+    {
+      "id": 16,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "package_create",
+      "description": "Created new broadband package: LocalhostTest100Mbps (100 Mbps)",
+      "created_at": "9/6/2026, 1:04:14 AM"
+    },
     {
       "id": 15,
       "user_id": 1,

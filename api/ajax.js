@@ -45,10 +45,10 @@ const TMP_DATA_FILE = '/tmp/data.json';
 function loadData() {
     try {
         let fileToRead = null;
-        if (fs.existsSync(TMP_DATA_FILE)) {
-            fileToRead = TMP_DATA_FILE;
-        } else if (fs.existsSync(DATA_FILE)) {
+        if (fs.existsSync(DATA_FILE)) {
             fileToRead = DATA_FILE;
+        } else if (fs.existsSync(TMP_DATA_FILE)) {
+            fileToRead = TMP_DATA_FILE;
         }
         if (fileToRead) {
             const raw = fs.readFileSync(fileToRead, 'utf8');
