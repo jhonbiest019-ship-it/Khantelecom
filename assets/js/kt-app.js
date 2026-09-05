@@ -1,6 +1,6 @@
 /**
  * Khan Telecom ISP Manager - Single Page Application Engine & Real-Time Polling
- * Author: Muhammad Irfan
+ * Author: Saif
  */
 
 (function($) {
@@ -35,8 +35,8 @@
             }
             return {
                 user_id: 1,
-                user_login: 'irfan',
-                display_name: 'Muhammad Irfan',
+                user_login: 'saif',
+                display_name: 'Saif',
                 role_level: 'super_admin',
                 permissions: { can_view_financials: 1, can_create_invoice: 1, can_collect_payment: 1, can_edit_packages: 1, can_manage_customers: 1, can_export_reports: 1 }
             };
@@ -92,7 +92,7 @@
                 e.preventDefault();
                 var u = self.getUserSession();
                 $('#kt-change-password-form')[0].reset();
-                $('#change-pass-username').val(u.user_login || 'irfan');
+                $('#change-pass-username').val(u.user_login || 'saif');
                 $('#change-pass-new, #change-pass-confirm').attr('type', 'password');
                 $('.btn-toggle-pass').text('👁️');
                 $('#kt-change-password-modal, #kt-modal-backdrop').show();
@@ -442,7 +442,7 @@
                                 statusBadge = `<span class="badge badge-suspended">🔴 Inactive (${reason})</span><br><small style="color:#ff7b72; font-size:10px;">Package Expired</small>`;
 
                                 var cleanPhone = (c.phone_number || '').replace(/^0/, '92');
-                                var alertTextRaw = `🚨 *KHAN TELECOM PACKAGE EXPIRY ALERT* 🚨\n----------------------------------\nDear Subscriber: *${c.full_name}*\nSubscriber ID: *${c.customer_code}*\nArea/Sector: *${c.area_sector}*\n\n⚠️ Your 30-Day Broadband Package (*${c.package_name || 'Fiber Internet'}*) has *EXPIRED*.\nYour internet service status is currently: *INACTIVE / EXPIRED*.\n\n💡 Please renew your monthly package fee to continue enjoying high-speed internet service.\n==================================\nContact Khan Telecom Office for instant renewal.\n*D & D By Muhammad Irfan*`;
+                                var alertTextRaw = `🚨 *KHAN TELECOM PACKAGE EXPIRY ALERT* 🚨\n----------------------------------\nDear Subscriber: *${c.full_name}*\nSubscriber ID: *${c.customer_code}*\nArea/Sector: *${c.area_sector}*\n\n⚠️ Your 30-Day Broadband Package (*${c.package_name || 'Fiber Internet'}*) has *EXPIRED*.\nYour internet service status is currently: *INACTIVE / EXPIRED*.\n\n💡 Please renew your monthly package fee to continue enjoying high-speed internet service.\n==================================\nContact Khan Telecom Office for instant renewal.\n*D & D By Saif*`;
                                 var waAlertUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(alertTextRaw)}`;
 
                                 alertBtn = `<a href="${waAlertUrl}" target="_blank" class="btn btn-sm btn-whatsapp btn-send-alert-wa" title="Send WhatsApp Package Expiry Alert">🚨 WhatsApp Alert</a>`;

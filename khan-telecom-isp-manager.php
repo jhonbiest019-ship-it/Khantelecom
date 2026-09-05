@@ -4,7 +4,7 @@
  * Plugin URI:        https://khantelecom.com
  * Description:       Standalone Multi-Tier Internet Service Provider (ISP) Management Engine & Mobile PWA App Shell.
  * Version:           1.0.0
- * Author:            Muhammad Irfan
+ * Author:            Saif
  * Author URI:        https://khantelecom.com
  * Text Domain:       khan-telecom-isp-manager
  * Requires at least: 5.8

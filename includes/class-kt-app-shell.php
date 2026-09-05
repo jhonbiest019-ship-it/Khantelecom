@@ -102,7 +102,7 @@ class KT_App_Shell {
                     </form>
 
                     <div class="login-footer">
-                        <p>D & D By Muhammad Irfan</p>
+                        <p>D & D By Saif</p>
                     </div>
                 </div>
             </div>
@@ -210,7 +210,7 @@ class KT_App_Shell {
                         
                         <div class="sidebar-footer">
                             <p>Khan Telecom v<?php echo KT_VERSION; ?></p>
-                            <p class="credits">D & D By Muhammad Irfan</p>
+                            <p class="credits">D & D By Saif</p>
                         </div>
                     </aside>
 
@@ -229,7 +229,7 @@ class KT_App_Shell {
                 <!-- Footer Bar -->
                 <footer class="kt-app-footer">
                     <span>Khan Telecom ISP Engine &copy; <?php echo date('Y'); ?></span>
-                    <span class="footer-author">D & D By Muhammad Irfan</span>
+                    <span class="footer-author">D & D By Saif</span>
                 </footer>
             </div>
 
@@ -574,7 +574,7 @@ class KT_App_Shell {
                         <div class="modal-body">
                             <div class="form-group">
                                 <label>Super Admin Username</label>
-                                <input type="text" name="new_username" id="change-pass-username" required placeholder="e.g. irfan">
+                                <input type="text" name="new_username" id="change-pass-username" required placeholder="e.g. saif">
                             </div>
                             <div class="form-group">
                                 <label>New Password *</label>
