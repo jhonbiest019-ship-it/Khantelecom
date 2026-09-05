@@ -14,8 +14,10 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // Static File Serving
-    let filePath = path.join(__dirname, url === '/' || url === '/khan-telecom-portal' ? 'index.html' : url);
+    // Static File Serving for local dev
+    let relPath = url === '/' || url === '/khan-telecom-portal' ? 'index.html' : url.replace(/^\//, '');
+    let filePath = path.resolve(process.cwd(), relPath);
+
     const ext = path.extname(filePath);
     const contentTypeMap = {
         '.html': 'text/html',
@@ -30,8 +32,17 @@ const server = http.createServer((req, res) => {
 
     fs.readFile(filePath, (err, content) => {
         if (err) {
-            res.writeHead(404, { 'Content-Type': 'text/plain' });
-            res.end('File Not Found');
+            // Fallback to index.html if route not found
+            let indexPath = path.resolve(process.cwd(), 'index.html');
+            fs.readFile(indexPath, (err2, mainContent) => {
+                if (err2) {
+                    res.writeHead(404, { 'Content-Type': 'text/plain' });
+                    res.end('File Not Found');
+                } else {
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(mainContent, 'utf-8');
+                }
+            });
         } else {
             res.writeHead(200, { 'Content-Type': contentType });
             res.end(content, 'utf-8');
