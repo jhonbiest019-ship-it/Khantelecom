@@ -1,5 +1,2 @@
-const ajaxHandler = require('./ajax.js');
-
-module.exports = (req, res) => {
-    ajaxHandler(req, res);
-};
+const ajaxHandler = require('./ajax');
+module.exports = ajaxHandler;

@@ -743,19 +743,63 @@ function strPad(n, width) {
 }
 
 module.exports = (req, res) => {
-    if (req.method === 'POST') {
-        if (req.body && typeof req.body === 'object') {
-            processRequest(req.body, res);
-        } else if (req.body && typeof req.body === 'string') {
-            processRequest(querystring.parse(req.body), res);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        if (res.status) {
+            res.status(200).end();
         } else {
-            let body = '';
-            req.on('data', chunk => { body += chunk.toString(); });
-            req.on('end', () => {
-                processRequest(querystring.parse(body), res);
-            });
+            res.writeHead(200);
+            res.end();
+        }
+        return;
+    }
+
+    if (req.method === 'POST') {
+        let postData = null;
+
+        if (req.body) {
+            if (typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+                postData = req.body;
+            } else if (typeof req.body === 'string') {
+                postData = querystring.parse(req.body);
+            } else if (Buffer.isBuffer(req.body)) {
+                postData = querystring.parse(req.body.toString('utf8'));
+            }
+        }
+
+        if (postData && Object.keys(postData).length > 0) {
+            processRequest(postData, res);
+            return;
+        }
+
+        let body = '';
+        let processed = false;
+
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', () => {
+            if (!processed) {
+                processed = true;
+                let parsed = {};
+                try {
+                    parsed = body ? querystring.parse(body) : {};
+                } catch(e) {}
+                processRequest(parsed, res);
+            }
+        });
+
+        if (req.readableEnded || req.complete) {
+            setTimeout(() => {
+                if (!processed) {
+                    processed = true;
+                    processRequest(postData || {}, res);
+                }
+            }, 50);
         }
     } else {
-        res.status ? res.status(200).send('API Active') : res.end('API Active');
+        if (res.setHeader) res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.end('<h1>Khan Telecom API Active</h1>');
     }
 };
