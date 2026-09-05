@@ -36,7 +36,7 @@
             return {
                 user_id: 1,
                 user_login: 'saif',
-                display_name: 'Saif',
+                display_name: 'Saif Telecom',
                 role_level: 'super_admin',
                 permissions: { can_view_financials: 1, can_create_invoice: 1, can_collect_payment: 1, can_edit_packages: 1, can_manage_customers: 1, can_export_reports: 1 }
             };

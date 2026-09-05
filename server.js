@@ -17,7 +17,7 @@ let matrix = [
         user_id: 1, 
         user_login: 'saif', 
         user_pass: 'admin123', 
-        display_name: 'Saif', 
+        display_name: 'Saif Telecom', 
         user_email: 'saif@khantelecom.com', 
         permissions: { 
             role_level: 'super_admin', 
@@ -47,7 +47,7 @@ const server = http.createServer((req, res) => {
 
             res.setHeader('Content-Type', 'application/json');
 
-            const activeUser = data.current_user_name || 'Saif';
+            const activeUser = data.current_user_name || 'Saif Telecom';
             const activeUserId = parseInt(data.current_user_id) || 1;
             const activeRole = data.current_user_role || 'super_admin';
 
