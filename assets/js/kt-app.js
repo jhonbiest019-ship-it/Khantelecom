@@ -55,7 +55,7 @@
             this.updateHeaderUserInfo();
 
             // Login Form Submit
-            $('#kt-login-form').on('submit', function(e) {
+            $(document).on('submit', '#kt-login-form', function(e) {
                 e.preventDefault();
                 var $btn = $('#kt-login-btn');
                 var $alert = $('#kt-login-alert');
@@ -116,7 +116,7 @@
             });
 
             // Change Password Form Submit
-            $('#kt-change-password-form').on('submit', function(e) {
+            $(document).on('submit', '#kt-change-password-form', function(e) {
                 e.preventDefault();
                 var u = self.getUserSession();
                 var data = $(this).serialize() + '&action=kt_change_superadmin_password&nonce=' + ktConfig.nonce + '&current_user_id=' + u.user_id + '&current_user_name=' + encodeURIComponent(u.display_name) + '&current_user_role=' + u.role_level;
@@ -150,7 +150,7 @@
             });
 
             // Submit Staff Registration Request Form
-            $('#kt-register-form').on('submit', function(e) {
+            $(document).on('submit', '#kt-register-form', function(e) {
                 e.preventDefault();
                 var data = $(this).serialize() + '&action=kt_register_staff_request&nonce=' + ktConfig.nonce;
                 $.post(ktConfig.ajaxUrl, data, function(res) {
@@ -236,8 +236,10 @@
                     self.fetchInvoices();
                 } else if (self.currentView === 'products') {
                     self.fetchProducts();
+                } else if (self.currentView === 'packages') {
+                    self.fetchPackages();
                 }
-            }, 6000); // 6-second real-time sync across all active views
+            }, 3000); // 3-second real-time sync across all active views
         },
 
         /* ==================== 1. DASHBOARD VIEW ==================== */
@@ -443,7 +445,7 @@
                                 statusBadge = `<span class="badge badge-suspended">🔴 Inactive (${reason})</span><br><small style="color:#ff7b72; font-size:10px;">Package Expired</small>`;
 
                                 var cleanPhone = (c.phone_number || '').replace(/^0/, '92');
-                                var alertTextRaw = `🚨 *KHAN TELECOM PACKAGE EXPIRY ALERT* 🚨\n----------------------------------\nDear Subscriber: *${c.full_name}*\nSubscriber ID: *${c.customer_code}*\nArea/Sector: *${c.area_sector}*\n\n⚠️ Your 30-Day Broadband Package (*${c.package_name || 'Fiber Internet'}*) has *EXPIRED*.\nYour internet service status is currently: *INACTIVE / EXPIRED*.\n\n💡 Please renew your monthly package fee to continue enjoying high-speed internet service.\n==================================\nContact Khan Telecom Office for instant renewal.\n*D & D By Saif*`;
+                                var alertTextRaw = `🚨 *KHAN TELECOM PACKAGE EXPIRY ALERT* 🚨\n----------------------------------\nDear Subscriber: *${c.full_name}*\nSubscriber ID: *${c.customer_code}*\nArea/Sector: *${c.area_sector}*\n\n⚠️ Your 30-Day Broadband Package (*${c.package_name || 'Fiber Internet'}*) has *EXPIRED*.\nYour internet service status is currently: *INACTIVE / EXPIRED*.\n\n💡 Please renew your monthly package fee to continue enjoying high-speed internet service.\n==================================\nContact Khan Telecom Office for instant renewal.\n*Developed by Muhammad Irfan*`;
                                 var waAlertUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(alertTextRaw)}`;
 
                                 alertBtn = `<a href="${waAlertUrl}" target="_blank" class="btn btn-sm btn-whatsapp btn-send-alert-wa" title="Send WhatsApp Package Expiry Alert">🚨 WhatsApp Alert</a>`;
@@ -516,27 +518,40 @@
             $.post(ktConfig.ajaxUrl, { action: 'kt_get_packages', nonce: ktConfig.nonce }, function(res) {
                 if (res.success) {
                     var rows = '';
-                    var canEdit = res.data.can_edit;
-                    if (!canEdit) $('#btn-add-package').hide();
+                    var pkgList = Array.isArray(res.data) ? res.data : ((res.data && res.data.packages) ? res.data.packages : []);
+                    var canEdit = (res.data && res.data.can_edit !== undefined) ? res.data.can_edit : true;
 
-                    res.data.packages.forEach(function(p) {
-                        var costDisplay = (p.cost_price !== undefined) ? 'PKR ' + parseFloat(p.cost_price).toFixed(2) : '<span style="color:var(--text-muted);">[Restricted]</span>';
-                        var marginDisplay = (p.margin !== undefined) ? '<strong style="color:#7ee787;">PKR ' + parseFloat(p.margin).toFixed(2) + '</strong>' : '<span style="color:var(--text-muted);">[Restricted]</span>';
+                    if (canEdit) {
+                        $('#btn-add-package').show();
+                    } else {
+                        $('#btn-add-package').hide();
+                    }
 
-                        rows += `
-                            <tr>
-                                <td><strong>${p.package_name}</strong></td>
-                                <td>${p.speed_mbps} Mbps</td>
-                                <td>${costDisplay}</td>
-                                <td style="font-weight:bold;">PKR ${parseFloat(p.sale_price).toFixed(2)}</td>
-                                <td>${marginDisplay}</td>
-                                <td><span class="badge badge-${p.status}">${p.status}</span></td>
-                                <td>
-                                    ${canEdit ? `<button class="btn btn-sm btn-secondary btn-edit-package" data-json='${JSON.stringify(p)}'>✏️ Edit</button>` : 'N/A'}
-                                </td>
-                            </tr>
-                        `;
-                    });
+                    if (pkgList.length > 0) {
+                        pkgList.forEach(function(p) {
+                            var costDisplay = (p.cost_price !== undefined) ? 'PKR ' + parseFloat(p.cost_price).toFixed(2) : '<span style="color:var(--text-muted);">[Restricted]</span>';
+                            var marginDisplay = (p.margin !== undefined) ? '<strong style="color:#7ee787;">PKR ' + parseFloat(p.margin).toFixed(2) + '</strong>' : '<span style="color:var(--text-muted);">[Restricted]</span>';
+
+                            rows += `
+                                <tr>
+                                    <td><strong>${p.package_name}</strong></td>
+                                    <td>${p.speed_mbps} Mbps</td>
+                                    <td>${costDisplay}</td>
+                                    <td style="font-weight:bold;">PKR ${parseFloat(p.sale_price).toFixed(2)}</td>
+                                    <td>${marginDisplay}</td>
+                                    <td><span class="badge badge-${p.status || 'active'}">${p.status || 'active'}</span></td>
+                                    <td>
+                                        <div class="action-btn-group">
+                                            ${canEdit ? `<button class="btn btn-sm btn-secondary btn-edit-package" data-json='${JSON.stringify(p)}'>✏️ Edit</button>` : 'N/A'}
+                                            ${canEdit ? `<button class="btn btn-sm btn-outline-danger btn-delete-package" data-id="${p.id}" data-name="${p.package_name}">🗑️ Delete</button>` : ''}
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        rows = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">No broadband packages found. Click "➕ Create New Package" to add your first package.</td></tr>';
+                    }
                     $('#pkg-table-body').html(rows);
                 }
             });
@@ -911,13 +926,13 @@
                 }
             });
 
-            $('#kt-customer-form').on('submit', function(e) {
+            $(document).on('submit', '#kt-customer-form', function(e) {
                 e.preventDefault();
                 var user = self.getUserSession();
                 var data = $(this).serialize() + '&action=kt_save_customer&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
                 $.post(ktConfig.ajaxUrl, data, function(res) {
                     if (res.success) {
-                        alert(res.data.message);
+                        alert('✅ ' + res.data.message);
                         $('#kt-customer-modal, #kt-modal-backdrop').hide();
                         self.fetchCustomers();
                         self.populateCustomerAndPackageSelects();
@@ -953,13 +968,13 @@
                 $('#kt-package-modal, #kt-modal-backdrop').show();
             });
 
-            $('#kt-package-form').on('submit', function(e) {
+            $(document).on('submit', '#kt-package-form', function(e) {
                 e.preventDefault();
                 var user = self.getUserSession();
                 var data = $(this).serialize() + '&action=kt_save_package&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
                 $.post(ktConfig.ajaxUrl, data, function(res) {
                     if (res.success) {
-                        alert(res.data.message);
+                        alert('✅ ' + res.data.message);
                         $('#kt-package-modal, #kt-modal-backdrop').hide();
                         self.fetchPackages();
                         self.populateCustomerAndPackageSelects();
@@ -968,6 +983,24 @@
                         alert(res.data.message || 'Error saving package');
                     }
                 });
+            });
+
+            // Delete Package from Table Row
+            $(document).on('click', '.btn-delete-package', function() {
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                if (confirm('Are you sure you want to delete broadband package: ' + name + '?')) {
+                    var u = self.getUserSession();
+                    $.post(ktConfig.ajaxUrl, { action: 'kt_delete_package', nonce: ktConfig.nonce, package_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
+                        if (res.success) {
+                            alert('✅ ' + res.data.message);
+                            self.fetchPackages();
+                            self.populateCustomerAndPackageSelects();
+                        } else {
+                            alert(res.data.message || 'Error deleting package');
+                        }
+                    });
+                }
             });
 
             // 2.5 Product Buying Stock & Hardware Selling Actions
@@ -1010,7 +1043,7 @@
                 }
             });
 
-            $('#kt-product-form').on('submit', function(e) {
+            $(document).on('submit', '#kt-product-form', function(e) {
                 e.preventDefault();
                 var user = self.getUserSession();
                 var data = $(this).serialize() + '&action=kt_save_product&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
@@ -1075,7 +1108,7 @@
                 $('#sell-total-preview').text('PKR ' + total.toFixed(2));
             });
 
-            $('#kt-sell-product-form').on('submit', function(e) {
+            $(document).on('submit', '#kt-sell-product-form', function(e) {
                 e.preventDefault();
                 var user = self.getUserSession();
                 var data = $(this).serialize() + '&action=kt_sell_product&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
@@ -1097,7 +1130,7 @@
                 $('#kt-invoice-modal, #kt-modal-backdrop').show();
             });
 
-            $('#kt-invoice-form').on('submit', function(e) {
+            $(document).on('submit', '#kt-invoice-form', function(e) {
                 e.preventDefault();
                 var user = self.getUserSession();
                 var data = $(this).serialize() + '&action=kt_create_invoice&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
@@ -1160,7 +1193,7 @@
                 $('#kt-payment-modal, #kt-modal-backdrop').show();
             });
 
-            $('#kt-payment-form').on('submit', function(e) {
+            $(document).on('submit', '#kt-payment-form', function(e) {
                 e.preventDefault();
                 var user = self.getUserSession();
                 var data = $(this).serialize() + '&action=kt_collect_payment&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;

@@ -1,0 +1,208 @@
+{
+  "packages": [
+    {
+      "id": 1,
+      "package_name": "10 Mbps Fiber Basic",
+      "speed_mbps": 10,
+      "cost_price": 600,
+      "sale_price": 1200,
+      "margin": 600,
+      "status": "active"
+    },
+    {
+      "id": 2,
+      "package_name": "20 Mbps Fiber Pro",
+      "speed_mbps": 20,
+      "cost_price": 1000,
+      "sale_price": 2000,
+      "margin": 1000,
+      "status": "active"
+    },
+    {
+      "id": 3,
+      "package_name": "50 Mbps Fiber Ultra",
+      "speed_mbps": 50,
+      "cost_price": 1800,
+      "sale_price": 3500,
+      "margin": 1700,
+      "status": "active"
+    },
+    {
+      "id": 4,
+      "package_name": "100 Mbps Enterprise Fiber",
+      "speed_mbps": 100,
+      "cost_price": 3000,
+      "sale_price": 6000,
+      "margin": 3000,
+      "status": "active"
+    },
+    {
+      "id": 5,
+      "package_name": "30 Mbps Gaming Fiber",
+      "speed_mbps": 30,
+      "cost_price": 1200,
+      "sale_price": 2500,
+      "margin": 1300,
+      "status": "active"
+    },
+    {
+      "id": 6,
+      "package_name": "30 Mbps Speed Test",
+      "speed_mbps": 30,
+      "cost_price": 1200,
+      "sale_price": 2500,
+      "margin": 1300,
+      "status": "active"
+    },
+    {
+      "id": 7,
+      "package_name": "50 Mbps VIP Pro",
+      "speed_mbps": 50,
+      "cost_price": 1800,
+      "sale_price": 3800,
+      "margin": 2000,
+      "status": "active"
+    },
+    {
+      "id": 8,
+      "package_name": "50Mbps Gaming Ultra",
+      "speed_mbps": 50,
+      "cost_price": 1500,
+      "sale_price": 3000,
+      "margin": 1500,
+      "status": "active"
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "customer_code": "KT-1001",
+      "full_name": "Muhammad Ali Khan",
+      "phone_number": "03009876543",
+      "cnic_id": "",
+      "area_sector": "Sector F-11/2",
+      "address": "",
+      "package_id": 2,
+      "package_name": "20 Mbps Fiber Pro",
+      "assigned_ip_ipoe": "",
+      "connection_type": "Fiber_FTTH",
+      "billing_cycle_day": 1,
+      "status": "active",
+      "activated_at": "2026-09-05T18:38:21.660Z"
+    },
+    {
+      "id": 2,
+      "customer_code": "KT-1002",
+      "full_name": "Zain Khan",
+      "phone_number": "03001234567",
+      "cnic_id": "",
+      "area_sector": "Sector G-9",
+      "address": "",
+      "package_id": 1,
+      "package_name": "10 Mbps Fiber Basic",
+      "assigned_ip_ipoe": "",
+      "connection_type": "Fiber_FTTH",
+      "billing_cycle_day": 1,
+      "status": "active",
+      "activated_at": "2026-09-05T18:39:38.043Z"
+    }
+  ],
+  "invoices": [],
+  "products": [
+    {
+      "id": 1,
+      "product_name": "HP Router",
+      "category": "Routers",
+      "cost_price": 4000,
+      "sale_price": 6000,
+      "margin": 2000,
+      "stock_qty": 5,
+      "unit": "pcs"
+    }
+  ],
+  "activityLogs": [
+    {
+      "id": 7,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "product_create",
+      "description": "Added new hardware product to inventory: HP Router",
+      "created_at": "9/5/2026, 11:41:59 PM"
+    },
+    {
+      "id": 6,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "customer_create",
+      "description": "Registered new subscriber: Zain Khan (KT-1002)",
+      "created_at": "9/5/2026, 11:39:38 PM"
+    },
+    {
+      "id": 5,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "package_create",
+      "description": "Created new broadband package: 50Mbps Gaming Ultra (50 Mbps)",
+      "created_at": "9/5/2026, 11:39:31 PM"
+    },
+    {
+      "id": 4,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "customer_create",
+      "description": "Registered new subscriber: Muhammad Ali Khan (KT-1001)",
+      "created_at": "9/5/2026, 11:38:21 PM"
+    },
+    {
+      "id": 3,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "package_create",
+      "description": "Created new broadband package: 50 Mbps VIP Pro (50 Mbps)",
+      "created_at": "9/5/2026, 11:38:21 PM"
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "package_create",
+      "description": "Created new broadband package: 30 Mbps Speed Test (30 Mbps)",
+      "created_at": "9/5/2026, 11:37:40 PM"
+    },
+    {
+      "id": 1,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "package_create",
+      "description": "Created new broadband package: 30 Mbps Gaming Fiber (30 Mbps)",
+      "created_at": "9/5/2026, 11:24:03 PM"
+    }
+  ],
+  "matrix": [
+    {
+      "user_id": 1,
+      "user_login": "saif",
+      "user_pass": "admin123",
+      "display_name": "Saif Telecom",
+      "user_email": "saif@khantelecom.com",
+      "permissions": {
+        "role_level": "super_admin",
+        "can_view_financials": 1,
+        "can_create_invoice": 1,
+        "can_collect_payment": 1,
+        "can_edit_packages": 1,
+        "can_manage_customers": 1,
+        "can_export_reports": 1,
+        "approval_status": "approved"
+      }
+    }
+  ],
+  "productSales": []
+}

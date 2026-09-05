@@ -42,7 +42,7 @@ class KT_Receipt_Engine {
                    "*COLLECTOR:* {$collector_name}\n" .
                    "==================================\n" .
                    "Thank you for choosing Khan Telecom!\n" .
-                   "*D & D By Saif*";
+                   "*Developed by Muhammad Irfan*";
 
         return $message;
     }
@@ -83,7 +83,7 @@ class KT_Receipt_Engine {
                    "*SOLD BY:* {$sold_by}\n" .
                    "==================================\n" .
                    "Thank you for choosing Khan Telecom!\n" .
-                   "*D & D By Saif*";
+                   "*Developed by Muhammad Irfan*";
 
         return $message;
     }
@@ -143,7 +143,7 @@ class KT_Receipt_Engine {
 
             <div class="slip-footer">
                 <p>Thank you for choosing Khan Telecom!</p>
-                <p class="slip-credits">D & D By Saif</p>
+                <p class="slip-credits">Developed by Muhammad Irfan</p>
             </div>
         </div>
         <?php
@@ -192,7 +192,7 @@ class KT_Receipt_Engine {
 
             <div class="slip-footer">
                 <p>Thank you for choosing Khan Telecom!</p>
-                <p class="slip-credits">D & D By Saif</p>
+                <p class="slip-credits">Developed by Muhammad Irfan</p>
             </div>
         </div>
         <?php
