@@ -31,7 +31,7 @@ const server = http.createServer((req, res) => {
     const url = req.url.split('?')[0];
 
     // Serve API Endpoints
-    if (url === '/api/ajax') {
+    if (url === '/api/ajax' || url === '/api/ajax.js' || url.startsWith('/api/')) {
         apiHandler(req, res);
         return;
     }

@@ -40,10 +40,18 @@ let matrix = [
 
 let productSales = [];
 
+const TMP_DATA_FILE = '/tmp/data.json';
+
 function loadData() {
     try {
-        if (fs.existsSync(DATA_FILE)) {
-            const raw = fs.readFileSync(DATA_FILE, 'utf8');
+        let fileToRead = null;
+        if (fs.existsSync(TMP_DATA_FILE)) {
+            fileToRead = TMP_DATA_FILE;
+        } else if (fs.existsSync(DATA_FILE)) {
+            fileToRead = DATA_FILE;
+        }
+        if (fileToRead) {
+            const raw = fs.readFileSync(fileToRead, 'utf8');
             const store = JSON.parse(raw);
             if (Array.isArray(store.packages) && store.packages.length > 0) packages = store.packages;
             if (Array.isArray(store.customers)) customers = store.customers;
@@ -59,19 +67,23 @@ function loadData() {
 }
 
 function saveData() {
+    const store = {
+        packages,
+        customers,
+        invoices,
+        products,
+        activityLogs,
+        matrix,
+        productSales
+    };
     try {
-        const store = {
-            packages,
-            customers,
-            invoices,
-            products,
-            activityLogs,
-            matrix,
-            productSales
-        };
         fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), 'utf8');
     } catch (e) {
-        console.error("Error saving data:", e);
+        try {
+            fs.writeFileSync(TMP_DATA_FILE, JSON.stringify(store, null, 2), 'utf8');
+        } catch (err) {
+            console.error("Error saving data to /tmp:", err);
+        }
     }
 }
 
