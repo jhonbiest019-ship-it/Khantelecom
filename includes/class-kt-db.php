@@ -161,57 +161,6 @@ class KT_DB {
     private static function seed_default_data() {
         global $wpdb;
 
-        // Seed default packages if none exist
-        $table_packages = $wpdb->prefix . 'kt_packages';
-        $pkg_count = $wpdb->get_var("SELECT COUNT(*) FROM $table_packages");
-        if ((int)$pkg_count === 0) {
-            $default_packages = array(
-                array(
-                    'package_name' => '10 Mbps Fiber Basic',
-                    'speed_mbps'   => 10,
-                    'cost_price'   => 800.00,
-                    'sale_price'   => 1500.00,
-                    'margin'       => 700.00,
-                    'status'       => 'active'
-                ),
-                array(
-                    'package_name' => '20 Mbps Fiber Pro',
-                    'speed_mbps'   => 20,
-                    'cost_price'   => 1200.00,
-                    'sale_price'   => 2200.00,
-                    'margin'       => 1000.00,
-                    'status'       => 'active'
-                ),
-                array(
-                    'package_name' => '50 Mbps Ultra Gaming',
-                    'speed_mbps'   => 50,
-                    'cost_price'   => 2500.00,
-                    'sale_price'   => 4500.00,
-                    'margin'       => 2000.00,
-                    'status'       => 'active'
-                ),
-            );
-
-            foreach ($default_packages as $pkg) {
-                $wpdb->insert($table_packages, $pkg);
-            }
-        }
-
-        // Seed default inventory products if empty
-        $table_products = $wpdb->prefix . 'kt_products';
-        $prod_count = $wpdb->get_var("SELECT COUNT(*) FROM $table_products");
-        if ((int)$prod_count === 0) {
-            $default_products = array(
-                array('product_name' => 'Dual Band AC1200 WiFi Router', 'category' => 'Routers', 'cost_price' => 4500.00, 'sale_price' => 6500.00, 'stock_qty' => 25, 'unit' => 'pcs'),
-                array('product_name' => 'Fiber Optic Drop Cable 2-Core', 'category' => 'Cables', 'cost_price' => 18.00, 'sale_price' => 30.00, 'stock_qty' => 1000, 'unit' => 'meters'),
-                array('product_name' => 'XPON Fiber ONU Node Device', 'category' => 'ONU/ONT', 'cost_price' => 2200.00, 'sale_price' => 3500.00, 'stock_qty' => 15, 'unit' => 'pcs'),
-                array('product_name' => 'Cat6 Ethernet Cable (Pre-Made 3M)', 'category' => 'Accessories', 'cost_price' => 250.00, 'sale_price' => 500.00, 'stock_qty' => 40, 'unit' => 'pcs')
-            );
-            foreach ($default_products as $prod) {
-                $wpdb->insert($table_products, $prod);
-            }
-        }
-
         // Grant current WP admin Super Admin rights if empty
         $current_user_id = get_current_user_id();
         if ($current_user_id) {

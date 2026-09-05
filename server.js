@@ -5,36 +5,12 @@ const querystring = require('querystring');
 
 const PORT = 3000;
 
-// In-Memory Database Store for Demo Web Server
-let activityLogs = [
-    { id: 1, user_id: 1, user_name: 'Muhammad Irfan', role_level: 'super_admin', action_type: 'system_init', description: 'Khan Telecom ISP Management Engine initialized.', created_at: '2026-09-05 10:00:00' },
-    { id: 2, user_id: 1, user_name: 'Muhammad Irfan', role_level: 'super_admin', action_type: 'invoice_generated', description: 'Generated invoice INV-202609-0001 for Muhammad Ali Shah', created_at: '2026-09-05 10:15:00' },
-    { id: 3, user_id: 2, user_name: 'Field Recovery Agent', role_level: 'employee', action_type: 'payment_collected', description: 'Collected PKR 2200.00 for invoice INV-202609-0001 via Cash Settlement', created_at: '2026-09-05 14:15:00' }
-];
-
-let packages = [
-    { id: 1, package_name: '10 Mbps Fiber Basic', speed_mbps: 10, cost_price: 800.00, sale_price: 1500.00, margin: 700.00, status: 'active' },
-    { id: 2, package_name: '20 Mbps Fiber Pro', speed_mbps: 20, cost_price: 1200.00, sale_price: 2200.00, margin: 1000.00, status: 'active' },
-    { id: 3, package_name: '50 Mbps Ultra Gaming', speed_mbps: 50, cost_price: 2500.00, sale_price: 4500.00, margin: 2000.00, status: 'active' }
-];
-
-let products = [
-    { id: 1, product_name: 'Dual Band AC1200 WiFi Router', category: 'Routers', cost_price: 4500.00, sale_price: 6500.00, margin: 2000.00, stock_qty: 25, unit: 'pcs' },
-    { id: 2, product_name: 'Fiber Optic Drop Cable 2-Core', category: 'Cables', cost_price: 18.00, sale_price: 30.00, margin: 12.00, stock_qty: 1000, unit: 'meters' },
-    { id: 3, product_name: 'XPON Fiber ONU Node Device', category: 'ONU/ONT', cost_price: 2200.00, sale_price: 3500.00, margin: 1300.00, stock_qty: 15, unit: 'pcs' },
-    { id: 4, product_name: 'Cat6 Ethernet Cable (Pre-Made 3M)', category: 'Accessories', cost_price: 250.00, sale_price: 500.00, margin: 250.00, stock_qty: 40, unit: 'pcs' }
-];
-
-let customers = [
-    { id: 1, customer_code: 'KT-1001', full_name: 'Muhammad Ali Shah', phone_number: '03001234567', cnic_id: '35202-1234567-1', area_sector: 'Sector F-11', package_id: 2, package_name: '20 Mbps Fiber Pro', assigned_ip_ipoe: '192.168.10.15', status: 'active', activated_at: new Date(Date.now() - 5 * 86400000).toISOString() },
-    { id: 2, customer_code: 'KT-1002', full_name: 'Tariq Mehmood Khan', phone_number: '03219876543', cnic_id: '35202-7654321-3', area_sector: 'Phase 4, DHA', package_id: 3, package_name: '50 Mbps Ultra Gaming', assigned_ip_ipoe: '192.168.10.22', status: 'active', activated_at: new Date(Date.now() - 10 * 86400000).toISOString() },
-    { id: 3, customer_code: 'KT-1003', full_name: 'Usman Ghani', phone_number: '03335554433', cnic_id: '35202-9988776-5', area_sector: 'Sector G-9', package_id: 1, package_name: '10 Mbps Fiber Basic', assigned_ip_ipoe: '192.168.10.30', status: 'suspended', activated_at: new Date(Date.now() - 35 * 86400000).toISOString() }
-];
-
-let invoices = [
-    { id: 1, invoice_number: 'INV-202609-0001', customer_id: 1, full_name: 'Muhammad Ali Shah', customer_code: 'KT-1001', phone_number: '03001234567', area_sector: 'Sector F-11', billing_month: '2026-09', amount_due: 2200.00, amount_paid: 2200.00, discount: 0.00, payment_status: 'paid', payment_method: 'cash', collector_name: 'Field Recovery Agent', paid_at: '2026-09-05 02:15 PM' },
-    { id: 2, invoice_number: 'INV-202609-0002', customer_id: 2, full_name: 'Tariq Mehmood Khan', customer_code: 'KT-1002', phone_number: '03219876543', area_sector: 'Phase 4, DHA', billing_month: '2026-09', amount_due: 4500.00, amount_paid: 0.00, discount: 0.00, payment_status: 'unpaid', payment_method: 'cash', collector_name: null, paid_at: null }
-];
+// In-Memory Database Store for Web Server
+let activityLogs = [];
+let packages = [];
+let products = [];
+let customers = [];
+let invoices = [];
 
 let matrix = [
     { 
@@ -56,9 +32,7 @@ let matrix = [
     }
 ];
 
-let productSales = [
-    { id: 1, product_name: 'Dual Band AC1200 WiFi Router', customer_name: 'Muhammad Ali Shah', quantity: 1, total_sale: 6500.00, profit: 2000.00, sold_by: 'Muhammad Irfan', date: '2026-09-05 11:30 AM' }
-];
+let productSales = [];
 
 const server = http.createServer((req, res) => {
     const url = req.url.split('?')[0];
