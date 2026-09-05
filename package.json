@@ -1,0 +1,11 @@
+{
+  "name": "khan-telecom-isp-manager",
+  "version": "1.0.0",
+  "description": "Khan Telecom ISP Management Portal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {}
+}
