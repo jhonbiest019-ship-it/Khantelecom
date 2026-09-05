@@ -1,33 +1,9 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/ajax(.*)",
-      "methods": ["GET", "POST", "OPTIONS"],
-      "dest": "/api/ajax.js"
-    },
-    {
-      "src": "/api/(.*)",
-      "methods": ["GET", "POST", "OPTIONS"],
-      "dest": "/api/ajax.js"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/api/ajax",
+      "destination": "/api/ajax.js"
     }
   ]
 }
