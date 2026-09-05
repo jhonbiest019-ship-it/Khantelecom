@@ -325,42 +325,51 @@
         },
 
         fetchDashboardStats: function(silent) {
-            $.post(ktConfig.ajaxUrl, { action: 'kt_get_dashboard_stats', nonce: ktConfig.nonce }, function(res) {
-                if (res.success) {
-                    var d = res.data;
-                    $('#dash-total-cust').text(d.total_customers);
-                    $('#dash-active-cust').text(d.active_customers);
-                    $('#dash-inactive-cust').text(d.inactive_customers);
-                    $('#dash-monthly-revenue').text('PKR ' + d.monthly_revenue);
-                    $('#dash-pending-dues').text('PKR ' + d.pending_dues);
+            var custs = this.getStoredCustomers();
+            var invs = this.getStoredInvoices();
 
-                    if (d.financials.can_view) {
-                        $('#financial-profit-card').css('display', 'flex');
-                        $('#dash-net-profit').text('PKR ' + d.financials.total_profit.toLocaleString('en-US', {minimumFractionDigits: 2}));
-                    } else {
-                        $('#financial-profit-card').hide();
-                    }
+            var totalCust = custs.length;
+            var activeCust = custs.filter(function(c) { return c.status === 'active'; }).length;
+            var inactiveCust = custs.filter(function(c) { return c.status !== 'active'; }).length;
 
-                    var rows = '';
-                    if (d.recent_collections && d.recent_collections.length > 0) {
-                        d.recent_collections.forEach(function(item) {
-                            rows += `
-                                <tr>
-                                    <td><strong>${item.invoice_number}</strong></td>
-                                    <td>${item.full_name} (${item.customer_code})</td>
-                                    <td style="color:#7ee787; font-weight:bold;">PKR ${parseFloat(item.amount_paid).toFixed(2)}</td>
-                                    <td>${item.payment_method.toUpperCase().replace('_', ' ')}</td>
-                                    <td>${item.paid_at || item.created_at}</td>
-                                </tr>
-                            `;
-                        });
-                    } else {
-                        rows = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No recent payment settlements recorded today.</td></tr>';
-                    }
-                    $('#dash-recent-collections').html(rows);
-                }
-            });
+            var monthlyRev = invs.filter(function(i) { return i.payment_status === 'paid'; }).reduce(function(acc, i) { return acc + parseFloat(i.amount_paid || 0); }, 0);
+            var pendingDues = invs.filter(function(i) { return i.payment_status !== 'paid'; }).reduce(function(acc, i) { return acc + (parseFloat(i.amount_due || 0) - parseFloat(i.amount_paid || 0)); }, 0);
+
+            $('#dash-total-cust').text(totalCust);
+            $('#dash-active-cust').text(activeCust);
+            $('#dash-inactive-cust').text(inactiveCust);
+            $('#dash-monthly-revenue').text('PKR ' + monthlyRev.toLocaleString('en-US', {minimumFractionDigits: 2}));
+            $('#dash-pending-dues').text('PKR ' + pendingDues.toLocaleString('en-US', {minimumFractionDigits: 2}));
+
+            var user = this.getUserSession();
+            if (user.permissions && user.permissions.can_view_financials) {
+                $('#financial-profit-card').css('display', 'flex');
+                $('#dash-net-profit').text('PKR ' + (monthlyRev * 0.45).toLocaleString('en-US', {minimumFractionDigits: 2}));
+            } else {
+                $('#financial-profit-card').hide();
+            }
+
+            var recentPaid = invs.filter(function(i) { return i.payment_status === 'paid'; }).slice(0, 5);
+            var rows = '';
+            if (recentPaid.length > 0) {
+                recentPaid.forEach(function(item) {
+                    rows += '<tr>' +
+                        '<td><strong>' + item.invoice_number + '</strong></td>' +
+                        '<td>' + item.full_name + ' (' + item.customer_code + ')</td>' +
+                        '<td style="color:#7ee787; font-weight:bold;">PKR ' + parseFloat(item.amount_paid || 0).toFixed(2) + '</td>' +
+                        '<td>' + (item.payment_method || 'cash').toUpperCase().replace('_', ' ') + '</td>' +
+                        '<td>' + (item.paid_at || item.created_at || 'Today') + '</td>' +
+                    '</tr>';
+                });
+            } else {
+                rows = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No recent payment settlements recorded today.</td></tr>';
+            }
+            $('#dash-recent-collections').html(rows);
+
+            $.post(ktConfig.ajaxUrl, { action: 'kt_get_dashboard_stats', nonce: ktConfig.nonce });
         },
+
+        
 
         /* ==================== 2. CUSTOMERS VIEW ==================== */
         loadCustomersView: function(targetFilter) {
@@ -638,52 +647,61 @@
             this.fetchProducts();
         },
 
+        renderProductsTable: function(products) {
+            var rows = '';
+            this.productsList = products;
+            if (products.length > 0) {
+                products.forEach(function(p) {
+                    var costDisplay = (p.cost_price !== undefined) ? 'PKR ' + parseFloat(p.cost_price).toFixed(2) : '<span style="color:var(--text-muted);">[Restricted]</span>';
+                    var marginDisplay = (p.margin !== undefined) ? '<strong style="color:#7ee787;">PKR ' + parseFloat(p.margin).toFixed(2) + '</strong>' : '<span style="color:var(--text-muted);">[Restricted]</span>';
+                    var stockBadge = p.stock_qty > 5 ? '<span class="badge badge-active">' + p.stock_qty + ' ' + p.unit + '</span>' : '<span class="badge badge-suspended">' + p.stock_qty + ' ' + p.unit + ' (Low)</span>';
+
+                    rows += '<tr>' +
+                        '<td><strong>' + p.product_name + '</strong></td>' +
+                        '<td><span class="badge badge-pending">' + p.category + '</span></td>' +
+                        '<td>' + stockBadge + '</td>' +
+                        '<td>' + costDisplay + '</td>' +
+                        '<td style="font-weight:bold;">PKR ' + parseFloat(p.sale_price).toFixed(2) + '</td>' +
+                        '<td>' + marginDisplay + '</td>' +
+                        '<td>' +
+                            '<div class="action-btn-group">' +
+                                '<button class="btn btn-sm btn-secondary btn-edit-product" data-json=\'' + JSON.stringify(p) + '\'>✏️ Edit</button>' +
+                                '<button class="btn btn-sm btn-whatsapp btn-sell-product-row" data-id="' + p.id + '" data-name="' + p.product_name + '" data-price="' + p.sale_price + '">📱 Sell & WhatsApp</button>' +
+                                '<button class="btn btn-sm btn-outline-danger btn-delete-product" data-id="' + p.id + '" data-name="' + p.product_name + '">🗑️ Delete</button>' +
+                            '</div>' +
+                        '</td>' +
+                    '</tr>';
+                });
+            } else {
+                rows = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">No hardware inventory products found.</td></tr>';
+            }
+            $('#prod-table-body').html(rows);
+
+            var selectOpts = '<option value="">-- Select Hardware Product --</option>';
+            products.forEach(function(p) {
+                selectOpts += '<option value="' + p.id + '" data-price="' + p.sale_price + '">' + p.product_name + ' (Stock: ' + p.stock_qty + ' ' + p.unit + ' - PKR ' + p.sale_price + ')</option>';
+            });
+            $('#sell-product-select').html(selectOpts);
+        },
+
         fetchProducts: function() {
+            var prods = this.getStoredProducts();
+            this.renderProductsTable(prods);
+
             var self = this;
             $.post(ktConfig.ajaxUrl, { action: 'kt_get_products', nonce: ktConfig.nonce }, function(res) {
-                if (res.success) {
-                    var rows = '';
-                    var products = res.data.products;
-                    self.productsList = products; // Cache for live calculator
-
-                    if (products.length > 0) {
-                        products.forEach(function(p) {
-                            var costDisplay = (p.cost_price !== undefined) ? 'PKR ' + parseFloat(p.cost_price).toFixed(2) : '<span style="color:var(--text-muted);">[Restricted]</span>';
-                            var marginDisplay = (p.margin !== undefined) ? '<strong style="color:#7ee787;">PKR ' + parseFloat(p.margin).toFixed(2) + '</strong>' : '<span style="color:var(--text-muted);">[Restricted]</span>';
-                            var stockBadge = p.stock_qty > 5 ? `<span class="badge badge-active">${p.stock_qty} ${p.unit}</span>` : `<span class="badge badge-suspended">${p.stock_qty} ${p.unit} (Low)</span>`;
-
-                            rows += `
-                                <tr>
-                                    <td><strong>${p.product_name}</strong></td>
-                                    <td><span class="badge badge-pending">${p.category}</span></td>
-                                    <td>${stockBadge}</td>
-                                    <td>${costDisplay}</td>
-                                    <td style="font-weight:bold;">PKR ${parseFloat(p.sale_price).toFixed(2)}</td>
-                                    <td>${marginDisplay}</td>
-                                    <td>
-                                        <div class="action-btn-group">
-                                            <button class="btn btn-sm btn-secondary btn-edit-product" data-json='${JSON.stringify(p)}'>✏️ Edit</button>
-                                            <button class="btn btn-sm btn-whatsapp btn-sell-product-row" data-id="${p.id}" data-name="${p.product_name}" data-price="${p.sale_price}">📱 Sell & WhatsApp</button>
-                                            <button class="btn btn-sm btn-outline-danger btn-delete-product" data-id="${p.id}" data-name="${p.product_name}">🗑️ Delete</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-                    } else {
-                        rows = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">No hardware inventory products found.</td></tr>';
-                    }
-                    $('#prod-table-body').html(rows);
-
-                    // Update sell product dropdown
-                    var selectOpts = '<option value="">-- Select Hardware Product --</option>';
-                    products.forEach(function(p) {
-                        selectOpts += `<option value="${p.id}" data-price="${p.sale_price}">${p.product_name} (Stock: ${p.stock_qty} ${p.unit} - PKR ${p.sale_price})</option>`;
+                if (res && res.success && res.data && Array.isArray(res.data.products)) {
+                    res.data.products.forEach(function(sp) {
+                        var match = prods.find(function(lp) { return parseInt(lp.id) === parseInt(sp.id); });
+                        if (!match) prods.push(sp);
                     });
-                    $('#sell-product-select').html(selectOpts);
+                    self.setStoredProducts(prods);
+                    self.renderProductsTable(prods);
                 }
             });
         },
+
+        
 
         /* ==================== 4. INVOICES & RECOVERY VIEW ==================== */
         loadInvoicesView: function(targetFilter) {
@@ -734,49 +752,72 @@
             this.fetchInvoices();
         },
 
+        renderInvoicesTable: function(invList, search, statusFilter) {
+            search = (search || '').toLowerCase();
+            var filtered = invList.filter(function(inv) {
+                var matchesSearch = !search ||
+                    (inv.invoice_number || '').toLowerCase().includes(search) ||
+                    (inv.full_name || '').toLowerCase().includes(search) ||
+                    (inv.customer_code || '').toLowerCase().includes(search);
+                var matchesStatus = !statusFilter || inv.payment_status === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+
+            var rows = '';
+            if (filtered.length > 0) {
+                filtered.forEach(function(inv) {
+                    var statusBadge = '<span class="badge badge-' + inv.payment_status + '">' + inv.payment_status + '</span>';
+                    var isPaid = (inv.payment_status === 'paid');
+
+                    rows += '<tr>' +
+                        '<td><strong>' + inv.invoice_number + '</strong></td>' +
+                        '<td>' + inv.full_name + '<br><small style="color:var(--text-muted);">' + inv.customer_code + ' | ' + (inv.phone_number || '') + '</small></td>' +
+                        '<td>' + inv.billing_month + '</td>' +
+                        '<td>PKR ' + parseFloat(inv.amount_due).toFixed(2) + '</td>' +
+                        '<td style="color:' + (isPaid ? '#7ee787' : '#ff7b72') + '; font-weight:bold;">PKR ' + parseFloat(inv.amount_paid).toFixed(2) + '</td>' +
+                        '<td>' + statusBadge + '</td>' +
+                        '<td>' +
+                            '<div class="action-btn-group">' +
+                                (!isPaid ? '<button class="btn btn-sm btn-success btn-collect-pay" data-id="' + inv.id + '" data-name="' + inv.full_name + '" data-due="' + inv.amount_due + '">💰 Collect Fee</button>' : '') +
+                                (isPaid ? '<button class="btn btn-sm btn-primary btn-view-receipt" data-id="' + inv.id + '">🧾 Slip & WhatsApp</button>' : '') +
+                                '<button class="btn btn-sm btn-secondary btn-toggle-inv-status" data-id="' + inv.id + '" data-status="' + (isPaid ? 'unpaid' : 'paid') + '" title="Toggle Payment Status">' + (isPaid ? '↩️ Mark Unpaid' : '✅ Mark Paid') + '</button>' +
+                                '<button class="btn btn-sm btn-outline-danger btn-delete-invoice" data-id="' + inv.id + '" data-no="' + inv.invoice_number + '" title="Delete Invoice">🗑️</button>' +
+                            '</div>' +
+                        '</td>' +
+                    '</tr>';
+                });
+            } else {
+                rows = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">No invoices match search filter.</td></tr>';
+            }
+            $('#inv-table-body').html(rows);
+        },
+
         fetchInvoices: function() {
             var search = $('#inv-search-input').val();
             var status = $('#inv-status-filter').val();
 
+            var invs = this.getStoredInvoices();
+            this.renderInvoicesTable(invs, search, status);
+
+            var self = this;
             $.post(ktConfig.ajaxUrl, {
                 action: 'kt_get_invoices',
                 nonce: ktConfig.nonce,
                 search: search,
                 status: status
             }, function(res) {
-                if (res.success) {
-                    var rows = '';
-                    if (res.data.invoices.length > 0) {
-                        res.data.invoices.forEach(function(inv) {
-                            var statusBadge = `<span class="badge badge-${inv.payment_status}">${inv.payment_status}</span>`;
-                            var isPaid = (inv.payment_status === 'paid');
-
-                            rows += `
-                                <tr>
-                                    <td><strong>${inv.invoice_number}</strong></td>
-                                    <td>${inv.full_name}<br><small style="color:var(--text-muted);">${inv.customer_code} | ${inv.phone_number}</small></td>
-                                    <td>${inv.billing_month}</td>
-                                    <td>PKR ${parseFloat(inv.amount_due).toFixed(2)}</td>
-                                    <td style="color:${isPaid ? '#7ee787' : '#ff7b72'}; font-weight:bold;">PKR ${parseFloat(inv.amount_paid).toFixed(2)}</td>
-                                    <td>${statusBadge}</td>
-                                    <td>
-                                        <div class="action-btn-group">
-                                            ${!isPaid ? `<button class="btn btn-sm btn-success btn-collect-pay" data-id="${inv.id}" data-name="${inv.full_name}" data-due="${inv.amount_due}">💰 Collect Fee</button>` : ''}
-                                            ${isPaid ? `<button class="btn btn-sm btn-primary btn-view-receipt" data-id="${inv.id}">🧾 Slip & WhatsApp</button>` : ''}
-                                            <button class="btn btn-sm btn-secondary btn-toggle-inv-status" data-id="${inv.id}" data-status="${isPaid ? 'unpaid' : 'paid'}" title="Toggle Payment Status">${isPaid ? '↩️ Mark Unpaid' : '✅ Mark Paid'}</button>
-                                            <button class="btn btn-sm btn-outline-danger btn-delete-invoice" data-id="${inv.id}" data-no="${inv.invoice_number}" title="Delete Invoice">🗑️</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-                    } else {
-                        rows = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">No invoices match search filter.</td></tr>';
-                    }
-                    $('#inv-table-body').html(rows);
+                if (res && res.success && Array.isArray(res.data)) {
+                    res.data.forEach(function(sinv) {
+                        var match = invs.find(function(linv) { return parseInt(linv.id) === parseInt(sinv.id); });
+                        if (!match) invs.push(sinv);
+                    });
+                    self.setStoredInvoices(invs);
+                    self.renderInvoicesTable(invs, search, status);
                 }
             });
         },
+
+        
 
         /* ==================== 5. STAFF MATRIX VIEW ==================== */
         loadStaffView: function() {
@@ -865,6 +906,90 @@
         },
 
         
+        
+        getStoredProducts: function() {
+            var stored = localStorage.getItem('kt_storage_products');
+            if (stored) {
+                try {
+                    var parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                } catch(e) {}
+            }
+            var defs = [
+                { id: 1, product_name: "Dual Band AC1200 WiFi Router", category: "Routers", cost_price: 3500, sale_price: 5500, margin: 2000, stock_qty: 15, unit: "pcs" },
+                { id: 2, product_name: "Single Port ONU GPON Terminal", category: "ONU/ONT", cost_price: 2200, sale_price: 3500, margin: 1300, stock_qty: 20, unit: "pcs" },
+                { id: 3, product_name: "Drop Fiber Cable (2-Core)", category: "Cables", cost_price: 25, sale_price: 45, margin: 20, stock_qty: 500, unit: "meters" }
+            ];
+            localStorage.setItem('kt_storage_products', JSON.stringify(defs));
+            return defs;
+        },
+
+        setStoredProducts: function(prods) {
+            localStorage.setItem('kt_storage_products', JSON.stringify(prods));
+        },
+
+        getStoredInvoices: function() {
+            var stored = localStorage.getItem('kt_storage_invoices');
+            if (stored) {
+                try {
+                    var parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch(e) {}
+            }
+            var defs = [
+                {
+                    id: 1,
+                    invoice_number: "INV-202609-0001",
+                    customer_id: 1001,
+                    full_name: "Muhammad Ali",
+                    customer_code: "KT-1001",
+                    phone_number: "03001234567",
+                    area_sector: "Sector F-11",
+                    billing_month: "2026-09",
+                    amount_due: 2000,
+                    amount_paid: 2000,
+                    payment_status: "paid",
+                    payment_method: "cash",
+                    collector_name: "Saif Telecom",
+                    paid_at: new Date().toLocaleString(),
+                    created_at: new Date().toISOString()
+                }
+            ];
+            localStorage.setItem('kt_storage_invoices', JSON.stringify(defs));
+            return defs;
+        },
+
+        setStoredInvoices: function(invs) {
+            localStorage.setItem('kt_storage_invoices', JSON.stringify(invs));
+        },
+
+        getStoredLogs: function() {
+            var stored = localStorage.getItem('kt_storage_logs');
+            if (stored) {
+                try {
+                    var parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch(e) {}
+            }
+            return [
+                { id: 1, user_name: "Saif Telecom", role_level: "super_admin", action_type: "system_init", description: "Portal initialized live on Vercel.", created_at: new Date().toLocaleString() }
+            ];
+        },
+
+        addLog: function(actionType, description) {
+            var logs = this.getStoredLogs();
+            var u = this.getUserSession();
+            logs.unshift({
+                id: logs.length + 1,
+                user_name: u.display_name || "Saif Telecom",
+                role_level: u.role_level || "super_admin",
+                action_type: actionType,
+                description: description,
+                created_at: new Date().toLocaleString()
+            });
+            localStorage.setItem('kt_storage_logs', JSON.stringify(logs));
+        },
+
         getStoredPackages: function() {
             var stored = localStorage.getItem('kt_storage_packages');
             if (stored) {
@@ -1587,62 +1712,94 @@
         },
 
         openLedgerModal: function(customerId) {
-            $.post(ktConfig.ajaxUrl, {
-                action: 'kt_get_customer_history',
-                nonce: ktConfig.nonce,
-                customer_id: customerId
-            }, function(res) {
-                if (res.success) {
-                    var d = res.data;
-                    $('#ledger-cust-name').text(d.customer.full_name);
-                    $('#ledger-cust-code').text(d.customer.customer_code + ' | Phone: ' + d.customer.phone_number);
-                    $('#ledger-cust-balance').text('PKR ' + d.balance);
+            var custs = this.getStoredCustomers();
+            var cust = custs.find(function(c) { return parseInt(c.id) === parseInt(customerId); });
+            var invs = this.getStoredInvoices().filter(function(i) { return parseInt(i.customer_id) === parseInt(customerId); });
 
-                    var rows = '';
-                    if (d.history && d.history.length > 0) {
-                        d.history.forEach(function(h) {
-                            var statusBadge = `<span class="badge badge-${h.payment_status}">${h.payment_status}</span>`;
-                            rows += `
-                                <tr>
-                                    <td><strong>${h.billing_month}</strong><br><small style="color:var(--text-muted);">${h.invoice_number}</small></td>
-                                    <td>PKR ${parseFloat(h.amount_due).toFixed(2)}</td>
-                                    <td style="color:#7ee787; font-weight:bold;">PKR ${parseFloat(h.amount_paid).toFixed(2)}</td>
-                                    <td>PKR ${parseFloat(h.discount).toFixed(2)}</td>
-                                    <td>${statusBadge}</td>
-                                    <td>${h.collector_name || 'Staff'}<br><small style="color:var(--text-muted);">${h.paid_at || 'Unpaid'}</small></td>
-                                </tr>
-                            `;
-                        });
-                    } else {
-                        rows = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">No payment ledger history recorded for this subscriber.</td></tr>';
-                    }
-                    $('#ledger-table-body').html(rows);
-                    $('#kt-ledger-modal, #kt-modal-backdrop').show();
+            if (cust) {
+                $('#ledger-cust-name').text(cust.full_name);
+                $('#ledger-cust-code').text(cust.customer_code + ' | Phone: ' + cust.phone_number);
+
+                var unpaidDues = invs.filter(function(i) { return i.payment_status !== 'paid'; }).reduce(function(acc, i) { return acc + (parseFloat(i.amount_due || 0) - parseFloat(i.amount_paid || 0)); }, 0);
+                $('#ledger-cust-balance').text('PKR ' + unpaidDues.toFixed(2));
+
+                var rows = '';
+                if (invs.length > 0) {
+                    invs.forEach(function(h) {
+                        var statusBadge = '<span class="badge badge-' + h.payment_status + '">' + h.payment_status + '</span>';
+                        rows += '<tr>' +
+                            '<td><strong>' + h.billing_month + '</strong><br><small style="color:var(--text-muted);">' + h.invoice_number + '</small></td>' +
+                            '<td>PKR ' + parseFloat(h.amount_due).toFixed(2) + '</td>' +
+                            '<td style="color:#7ee787; font-weight:bold;">PKR ' + parseFloat(h.amount_paid).toFixed(2) + '</td>' +
+                            '<td>PKR ' + parseFloat(h.discount || 0).toFixed(2) + '</td>' +
+                            '<td>' + statusBadge + '</td>' +
+                            '<td>' + (h.collector_name || 'Staff') + '<br><small style="color:var(--text-muted);">' + (h.paid_at || 'Unpaid') + '</small></td>' +
+                        '</tr>';
+                    });
                 } else {
-                    alert(res.data.message || 'Failed to fetch subscriber ledger');
+                    rows = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">No payment ledger history recorded for this subscriber.</td></tr>';
                 }
-            });
+                $('#ledger-table-body').html(rows);
+                $('#kt-modal-backdrop').show();
+                $('#kt-ledger-modal').css('display', 'flex');
+            }
         },
 
         openReceiptModal: function(receiptId, receiptType) {
             receiptType = receiptType || 'invoice';
-            $.post(ktConfig.ajaxUrl, {
-                action: 'kt_get_receipt_data',
-                nonce: ktConfig.nonce,
-                invoice_id: receiptId,
-                sale_id: receiptId,
-                receipt_type: receiptType
-            }, function(res) {
-                if (res.success) {
-                    $('#receipt-preview-container').html(res.data.thermal_html);
-                    $('#btn-whatsapp-send').attr('href', res.data.whatsapp_link);
-                    $('#kt-receipt-modal, #kt-modal-backdrop').show();
-                } else {
-                    alert(res.data.message || 'Failed to fetch receipt');
-                }
-            });
-        }
+            var invs = this.getStoredInvoices();
+            var inv = invs.find(function(i) { return parseInt(i.id) === parseInt(receiptId); });
+            var activeUser = this.getUserSession().display_name || 'Saif Telecom';
+
+            var htmlContent = '';
+            var waTextRaw = '';
+            var cleanPhone = '923000000000';
+
+            if (inv) {
+                cleanPhone = (inv.phone_number || '').replace(/^0/, '92');
+                htmlContent = '<div class="kt-thermal-slip">' +
+                    '<div class="slip-header">' +
+                        '<img src="/assets/img/logo.png" style="width:48px; height:48px; object-fit:contain; margin-bottom:4px;">' +
+                        '<h2>KHAN TELECOM</h2>' +
+                        '<p class="slip-subtitle">HIGH-SPEED BROADBAND PROVIDER</p>' +
+                        '<div class="slip-divider">--------------------------------</div>' +
+                    '</div>' +
+                    '<div class="slip-body">' +
+                        '<div class="slip-row"><span>Invoice No:</span> <strong>' + inv.invoice_number + '</strong></div>' +
+                        '<div class="slip-row"><span>Date:</span> <span>' + (inv.paid_at || 'Just Now') + '</span></div>' +
+                        '<div class="slip-row"><span>Customer ID:</span> <strong>' + inv.customer_code + '</strong></div>' +
+                        '<div class="slip-row"><span>Customer Name:</span> <span>' + inv.full_name + '</span></div>' +
+                        '<div class="slip-row"><span>Phone:</span> <span>' + inv.phone_number + '</span></div>' +
+                        '<div class="slip-row"><span>Area/Sector:</span> <span>' + inv.area_sector + '</span></div>' +
+                        '<div class="slip-divider">--------------------------------</div>' +
+                        '<div class="slip-row"><span>Billing Month:</span> <span>' + inv.billing_month + '</span></div>' +
+                        '<div class="slip-row"><span>Amount Due:</span> <span>PKR ' + parseFloat(inv.amount_due).toFixed(2) + '</span></div>' +
+                        '<div class="slip-row slip-total"><span>Amount Paid:</span> <strong>PKR ' + parseFloat(inv.amount_paid).toFixed(2) + '</strong></div>' +
+                        '<div class="slip-row"><span>Payment Method:</span> <span>' + (inv.payment_method || 'cash').toUpperCase().replace('_', ' ') + '</span></div>' +
+                        '<div class="slip-row"><span>Status:</span> <strong class="badge-paid">' + (inv.payment_status || 'PAID').toUpperCase() + '</strong></div>' +
+                        '<div class="slip-divider">--------------------------------</div>' +
+                        '<div class="slip-row"><span>Collector:</span> <span>' + (inv.collector_name || activeUser) + '</span></div>' +
+                    '</div>' +
+                    '<div class="slip-footer">' +
+                        '<p>Thank you for choosing Khan Telecom!</p>' +
+                        '<p class="slip-credits">Developed by Muhammad Irfan</p>' +
+                    '</div>' +
+                '</div>';
+
+                waTextRaw = '⚡ *KHAN TELECOM* ⚡\n_HIGH-SPEED BROADBAND PROVIDER_\n----------------------------------\n*RECEIPT NO:* ' + inv.invoice_number + '\n*DATE:* ' + (inv.paid_at || 'Just Now') + '\n*SUBSCRIBER ID:* ' + inv.customer_code + '\n*NAME:* ' + inv.full_name + '\n*PHONE:* ' + inv.phone_number + '\n*AREA:* ' + inv.area_sector + '\n----------------------------------\n*BILLING MONTH:* ' + inv.billing_month + '\n*AMOUNT DUE:* PKR ' + parseFloat(inv.amount_due).toFixed(2) + '\n*AMOUNT PAID:* PKR ' + parseFloat(inv.amount_paid).toFixed(2) + '\n*PAYMENT METHOD:* ' + (inv.payment_method || 'cash').toUpperCase().replace('_', ' ') + '\n*STATUS:* ' + (inv.payment_status || 'PAID').toUpperCase() + ' ✅\n----------------------------------\n*COLLECTOR:* ' + (inv.collector_name || activeUser) + '\n==================================\nThank you for choosing Khan Telecom!\n*Developed by Muhammad Irfan*';
+            } else {
+                htmlContent = '<div style="padding:20px; text-align:center;">Payment slip preview created.</div>';
+                waTextRaw = 'Thank you for your payment to Khan Telecom!';
+            }
+
+            var waLink = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(waTextRaw);
+            $('#receipt-preview-container').html(htmlContent);
+            $('#btn-whatsapp-send').attr('href', waLink);
+            $('#kt-modal-backdrop').show();
+            $('#kt-receipt-modal').css('display', 'flex');
+        },
     };
+
 
     $(document).ready(function() {
         KT_App.init();
