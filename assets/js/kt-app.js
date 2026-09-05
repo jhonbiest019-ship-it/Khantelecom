@@ -238,9 +238,15 @@
                     self.fetchProducts();
                 } else if (self.currentView === 'packages') {
                     self.fetchPackages();
+                } else if (self.currentView === 'staff') {
+                    self.fetchStaffMatrix();
+                } else if (self.currentView === 'logs') {
+                    self.fetchActivityLogs();
                 }
-            }, 3000); // 3-second real-time sync across all active views
+            }, 3000);
         },
+
+        
 
         /* ==================== 1. DASHBOARD VIEW ==================== */
         loadDashboardView: function() {
@@ -855,804 +861,60 @@
             this.fetchStaffMatrix();
         },
 
+        renderStaffMatrix: function(matrix) {
+            var rows = '';
+            if (matrix && matrix.length > 0) {
+                matrix.forEach(function(item) {
+                    var p = item.permissions || {};
+                    rows += '<tr data-user-id="' + item.user_id + '">' +
+                        '<td><strong>' + item.display_name + '</strong><br><small style="color:var(--text-muted);">' + (item.user_email || 'staff@khantelecom.com') + '</small></td>' +
+                        '<td>' +
+                            '<select class="staff-role-select" style="padding:4px; font-size:12px;">' +
+                                '<option value="super_admin" ' + (p.role_level === 'super_admin' ? 'selected' : '') + '>Super Admin</option>' +
+                                '<option value="admin" ' + (p.role_level === 'admin' ? 'selected' : '') + '>Admin</option>' +
+                                '<option value="employee" ' + (p.role_level === 'employee' ? 'selected' : '') + '>Field Employee</option>' +
+                            '</select>' +
+                        '</td>' +
+                        '<td><input type="checkbox" class="chk-financials" ' + (p.can_view_financials == 1 ? 'checked' : '') + '></td>' +
+                        '<td><input type="checkbox" class="chk-customers" ' + (p.can_manage_customers == 1 ? 'checked' : '') + '></td>' +
+                        '<td><input type="checkbox" class="chk-invoices" ' + (p.can_create_invoice == 1 ? 'checked' : '') + '></td>' +
+                        '<td><input type="checkbox" class="chk-collections" ' + (p.can_collect_payment == 1 ? 'checked' : '') + '></td>' +
+                        '<td>' +
+                            '<select class="staff-approval-select" style="padding:4px; font-size:12px;">' +
+                                '<option value="approved" ' + (p.approval_status === 'approved' ? 'selected' : '') + '>Approved</option>' +
+                                '<option value="pending_approval" ' + (p.approval_status === 'pending_approval' ? 'selected' : '') + '>Pending</option>' +
+                                '<option value="revoked" ' + (p.approval_status === 'revoked' ? 'selected' : '') + '>Revoked</option>' +
+                            '</select>' +
+                        '</td>' +
+                        '<td>' +
+                            '<button class="btn btn-sm btn-primary btn-save-staff-perm">💾 Save</button>' +
+                        '</td>' +
+                    '</tr>';
+                });
+            } else {
+                rows = '<tr><td colspan="8" style="text-align:center; color: var(--text-muted);">No staff accounts found.</td></tr>';
+            }
+            $('#staff-table-body').html(rows);
+        },
+
         fetchStaffMatrix: function() {
+            var staff = this.getStoredStaff();
+            this.renderStaffMatrix(staff);
+
+            var self = this;
             $.post(ktConfig.ajaxUrl, { action: 'kt_get_employee_matrix', nonce: ktConfig.nonce }, function(res) {
-                if (res.success) {
-                    var rows = '';
-                    res.data.matrix.forEach(function(item) {
-                        var p = item.permissions;
-                        rows += `
-                            <tr data-user-id="${item.user_id}">
-                                <td><strong>${item.display_name}</strong><br><small style="color:var(--text-muted);">${item.user_email}</small></td>
-                                <td>
-                                    <select class="staff-role-select" style="padding:4px; font-size:12px;">
-                                        <option value="super_admin" ${p.role_level === 'super_admin' ? 'selected' : ''}>Super Admin</option>
-                                        <option value="admin" ${p.role_level === 'admin' ? 'selected' : ''}>Admin</option>
-                                        <option value="employee" ${p.role_level === 'employee' ? 'selected' : ''}>Field Employee</option>
-                                    </select>
-                                </td>
-                                <td><input type="checkbox" class="chk-financials" ${p.can_view_financials == 1 ? 'checked' : ''}></td>
-                                <td><input type="checkbox" class="chk-customers" ${p.can_manage_customers == 1 ? 'checked' : ''}></td>
-                                <td><input type="checkbox" class="chk-invoices" ${p.can_create_invoice == 1 ? 'checked' : ''}></td>
-                                <td><input type="checkbox" class="chk-collections" ${p.can_collect_payment == 1 ? 'checked' : ''}></td>
-                                <td>
-                                    <select class="staff-approval-select" style="padding:4px; font-size:12px;">
-                                        <option value="approved" ${p.approval_status === 'approved' ? 'selected' : ''}>Approved</option>
-                                        <option value="pending_approval" ${p.approval_status === 'pending_approval' ? 'selected' : ''}>Pending</option>
-                                        <option value="revoked" ${p.approval_status === 'revoked' ? 'selected' : ''}>Revoked</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary btn-save-staff-perm">💾 Save</button>
-                                </td>
-                            </tr>
-                        `;
+                if (res && res.success && res.data && Array.isArray(res.data.matrix)) {
+                    res.data.matrix.forEach(function(sm) {
+                        var match = staff.find(function(lm) { return parseInt(lm.user_id) === parseInt(sm.user_id); });
+                        if (!match) staff.push(sm);
                     });
-                    $('#staff-table-body').html(rows);
-                }
-            });
-        },
-
-        /* ==================== MODALS & ACTIONS BINDING ==================== */
-        bindModals: function() {
-            var self = this;
-
-            $('.modal-close, #kt-modal-backdrop').on('click', function() {
-                $('.kt-modal, #kt-modal-backdrop').hide();
-            });
-
-            // Populate Customer Select Options in Modals
-            this.populateCustomerAndPackageSelects();
-        },
-
-        
-        
-        getStoredProducts: function() {
-            var stored = localStorage.getItem('kt_storage_products');
-            if (stored) {
-                try {
-                    var parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                } catch(e) {}
-            }
-            var defs = [
-                { id: 1, product_name: "Dual Band AC1200 WiFi Router", category: "Routers", cost_price: 3500, sale_price: 5500, margin: 2000, stock_qty: 15, unit: "pcs" },
-                { id: 2, product_name: "Single Port ONU GPON Terminal", category: "ONU/ONT", cost_price: 2200, sale_price: 3500, margin: 1300, stock_qty: 20, unit: "pcs" },
-                { id: 3, product_name: "Drop Fiber Cable (2-Core)", category: "Cables", cost_price: 25, sale_price: 45, margin: 20, stock_qty: 500, unit: "meters" }
-            ];
-            localStorage.setItem('kt_storage_products', JSON.stringify(defs));
-            return defs;
-        },
-
-        setStoredProducts: function(prods) {
-            localStorage.setItem('kt_storage_products', JSON.stringify(prods));
-        },
-
-        getStoredInvoices: function() {
-            var stored = localStorage.getItem('kt_storage_invoices');
-            if (stored) {
-                try {
-                    var parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed)) return parsed;
-                } catch(e) {}
-            }
-            var defs = [
-                {
-                    id: 1,
-                    invoice_number: "INV-202609-0001",
-                    customer_id: 1001,
-                    full_name: "Muhammad Ali",
-                    customer_code: "KT-1001",
-                    phone_number: "03001234567",
-                    area_sector: "Sector F-11",
-                    billing_month: "2026-09",
-                    amount_due: 2000,
-                    amount_paid: 2000,
-                    payment_status: "paid",
-                    payment_method: "cash",
-                    collector_name: "Saif Telecom",
-                    paid_at: new Date().toLocaleString(),
-                    created_at: new Date().toISOString()
-                }
-            ];
-            localStorage.setItem('kt_storage_invoices', JSON.stringify(defs));
-            return defs;
-        },
-
-        setStoredInvoices: function(invs) {
-            localStorage.setItem('kt_storage_invoices', JSON.stringify(invs));
-        },
-
-        getStoredLogs: function() {
-            var stored = localStorage.getItem('kt_storage_logs');
-            if (stored) {
-                try {
-                    var parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed)) return parsed;
-                } catch(e) {}
-            }
-            return [
-                { id: 1, user_name: "Saif Telecom", role_level: "super_admin", action_type: "system_init", description: "Portal initialized live on Vercel.", created_at: new Date().toLocaleString() }
-            ];
-        },
-
-        addLog: function(actionType, description) {
-            var logs = this.getStoredLogs();
-            var u = this.getUserSession();
-            logs.unshift({
-                id: logs.length + 1,
-                user_name: u.display_name || "Saif Telecom",
-                role_level: u.role_level || "super_admin",
-                action_type: actionType,
-                description: description,
-                created_at: new Date().toLocaleString()
-            });
-            localStorage.setItem('kt_storage_logs', JSON.stringify(logs));
-        },
-
-        getStoredPackages: function() {
-            var stored = localStorage.getItem('kt_storage_packages');
-            if (stored) {
-                try {
-                    var parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                } catch(e) {}
-            }
-            var defs = [
-                { id: 1, package_name: "10 Mbps Fiber Basic", speed_mbps: 10, cost_price: 600, sale_price: 1200, margin: 600, status: "active" },
-                { id: 2, package_name: "20 Mbps Fiber Pro", speed_mbps: 20, cost_price: 1000, sale_price: 2000, margin: 1000, status: "active" },
-                { id: 3, package_name: "50 Mbps Fiber Ultra", speed_mbps: 50, cost_price: 1800, sale_price: 3500, margin: 1700, status: "active" },
-                { id: 4, package_name: "100 Mbps Enterprise Fiber", speed_mbps: 100, cost_price: 3000, sale_price: 6000, margin: 3000, status: "active" }
-            ];
-            localStorage.setItem('kt_storage_packages', JSON.stringify(defs));
-            return defs;
-        },
-
-        setStoredPackages: function(pkgs) {
-            localStorage.setItem('kt_storage_packages', JSON.stringify(pkgs));
-        },
-
-        getStoredCustomers: function() {
-            var stored = localStorage.getItem('kt_storage_customers');
-            if (stored) {
-                try {
-                    var parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed)) return parsed;
-                } catch(e) {}
-            }
-            return [];
-        },
-
-        setStoredCustomers: function(custs) {
-            localStorage.setItem('kt_storage_customers', JSON.stringify(custs));
-        },
-
-        populateCustomerAndPackageSelects: function() {
-            var pkgs = this.getStoredPackages();
-            var opts = '<option value="">-- Select Package --</option>';
-            pkgs.forEach(function(p) {
-                opts += '<option value="' + p.id + '">' + p.package_name + ' (' + p.speed_mbps + ' Mbps - PKR ' + p.sale_price + ')</option>';
-            });
-            $('#cust-package-select').html(opts);
-
-            var custs = this.getStoredCustomers();
-            var cOpts = '<option value="">-- Select Subscriber --</option>';
-            custs.forEach(function(c) {
-                cOpts += '<option value="' + c.id + '">' + c.customer_code + ' - ' + c.full_name + ' (' + c.area_sector + ')</option>';
-            });
-            $('#invoice-customer-select').html(cOpts);
-
-            var self = this;
-            $.post(ktConfig.ajaxUrl, { action: 'kt_get_packages', nonce: ktConfig.nonce }, function(res) {
-                if (res && res.success && res.data) {
-                    var serverPkgs = Array.isArray(res.data) ? res.data : (res.data.packages || []);
-                    if (serverPkgs.length > 0) {
-                        serverPkgs.forEach(function(sp) {
-                            var match = pkgs.find(function(lp) { return parseInt(lp.id) === parseInt(sp.id); });
-                            if (!match) pkgs.push(sp);
-                        });
-                        self.setStoredPackages(pkgs);
-                    }
+                    self.setStoredStaff(staff);
+                    self.renderStaffMatrix(staff);
                 }
             });
         },
 
         
-
-        bindCalculators: function() {
-            // Package Profit Margin Live Calculator
-            $('#pkg-cost, #pkg-sale').on('input', function() {
-                var cost = parseFloat($('#pkg-cost').val()) || 0;
-                var sale = parseFloat($('#pkg-sale').val()) || 0;
-                var margin = Math.max(0, sale - cost);
-                $('#pkg-margin-preview').text('PKR ' + margin.toFixed(2));
-            });
-        },
-
-        bindActions: function() {
-            var self = this;
-
-            // 1. Add / Edit Customer Form Submit
-            $(document).on('click', '#btn-add-customer', function() {
-                self.populateCustomerAndPackageSelects();
-                $('#kt-customer-form')[0].reset();
-                $('#kt-customer-form input[name="id"]').val(0);
-                $('#kt-customer-form input[name="customer_code"]').val('KT-' + Math.floor(1001 + Math.random() * 9000));
-                $('#customer-modal-title').text('Register New Subscriber');
-                $('#btn-delete-customer-modal').hide();
-                $('#kt-modal-backdrop').show();
-                $('#kt-customer-modal').css('display', 'flex');
-            });
-
-            $(document).on('click', '.btn-edit-customer', function() {
-                self.populateCustomerAndPackageSelects();
-                var data = $(this).data('json');
-                $('#kt-customer-form input[name="id"]').val(data.id);
-                $('#kt-customer-form input[name="customer_code"]').val(data.customer_code);
-                $('#kt-customer-form input[name="full_name"]').val(data.full_name);
-                $('#kt-customer-form input[name="phone_number"]').val(data.phone_number);
-                $('#kt-customer-form input[name="cnic_id"]').val(data.cnic_id);
-                $('#kt-customer-form input[name="area_sector"]').val(data.area_sector);
-                $('#kt-customer-form textarea[name="address"]').val(data.address);
-                $('#kt-customer-form select[name="package_id"]').val(data.package_id);
-                $('#kt-customer-form input[name="assigned_ip_ipoe"]').val(data.assigned_ip_ipoe);
-                $('#kt-customer-form select[name="connection_type"]').val(data.connection_type);
-                $('#kt-customer-form input[name="billing_cycle_day"]').val(data.billing_cycle_day);
-                $('#kt-customer-form select[name="status"]').val(data.status);
-
-                $('#customer-modal-title').text('Edit Subscriber Profile (' + data.customer_code + ')');
-                $('#btn-delete-customer-modal').show();
-                $('#kt-modal-backdrop').show();
-                $('#kt-customer-modal').css('display', 'flex');
-            });
-
-            // Delete Subscriber from Modal Footer
-            $(document).on('click', '#btn-delete-customer-modal', function() {
-                var id = parseInt($('#kt-customer-form input[name="id"]').val());
-                var name = $('#kt-customer-form input[name="full_name"]').val();
-                if (id > 0 && confirm('Are you sure you want to delete subscriber profile: ' + name + '?')) {
-                    var localCusts = self.getStoredCustomers().filter(function(c) { return parseInt(c.id) !== id; });
-                    self.setStoredCustomers(localCusts);
-                    self.fetchCustomers();
-                    self.populateCustomerAndPackageSelects();
-                    $('#kt-customer-modal, #kt-modal-backdrop').hide();
-
-                    var u = self.getUserSession();
-                    $.post(ktConfig.ajaxUrl, { action: 'kt_delete_customer', nonce: ktConfig.nonce, customer_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level });
-                }
-            });
-
-            // Delete Subscriber from Table Row
-            $(document).on('click', '.btn-delete-customer', function() {
-                var id = parseInt($(this).data('id'));
-                var name = $(this).data('name');
-                if (confirm('Are you sure you want to delete subscriber profile: ' + name + '?')) {
-                    var localCusts = self.getStoredCustomers().filter(function(c) { return parseInt(c.id) !== id; });
-                    self.setStoredCustomers(localCusts);
-                    self.fetchCustomers();
-                    self.populateCustomerAndPackageSelects();
-
-                    var u = self.getUserSession();
-                    $.post(ktConfig.ajaxUrl, { action: 'kt_delete_customer', nonce: ktConfig.nonce, customer_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level });
-                }
-            });
-
-            $(document).on('submit', '#kt-customer-form', function(e) {
-                e.preventDefault();
-                var $submitBtn = $(this).find('button[type="submit"]');
-                var origText = $submitBtn.text();
-                $submitBtn.prop('disabled', true).text('Saving...');
-
-                var formId = parseInt($('#kt-customer-form input[name="id"]').val()) || 0;
-                var custCode = $('#kt-customer-form input[name="customer_code"]').val().trim();
-                var fullName = $('#kt-customer-form input[name="full_name"]').val().trim();
-                var phone = $('#kt-customer-form input[name="phone_number"]').val().trim();
-                var cnic = $('#kt-customer-form input[name="cnic_id"]').val().trim();
-                var area = $('#kt-customer-form input[name="area_sector"]').val().trim();
-                var addr = $('#kt-customer-form textarea[name="address"]').val().trim();
-                var pkgId = parseInt($('#kt-customer-form select[name="package_id"]').val()) || 0;
-                var ip = $('#kt-customer-form input[name="assigned_ip_ipoe"]').val().trim();
-                var connType = $('#kt-customer-form select[name="connection_type"]').val() || 'Fiber_FTTH';
-                var cycleDay = parseInt($('#kt-customer-form input[name="billing_cycle_day"]').val()) || 1;
-                var statusVal = $('#kt-customer-form select[name="status"]').val() || 'active';
-
-                var pkgs = self.getStoredPackages();
-                var pkg = pkgs.find(function(p) { return parseInt(p.id) === pkgId; });
-                var pkgName = pkg ? pkg.package_name : 'Broadband Package';
-
-                var localCusts = self.getStoredCustomers();
-                if (formId > 0) {
-                    var existing = localCusts.find(function(c) { return parseInt(c.id) === formId; });
-                    if (existing) {
-                        existing.customer_code = custCode || existing.customer_code;
-                        existing.full_name = fullName;
-                        existing.phone_number = phone;
-                        existing.cnic_id = cnic;
-                        existing.area_sector = area;
-                        existing.address = addr;
-                        existing.package_id = pkgId;
-                        existing.package_name = pkgName;
-                        existing.assigned_ip_ipoe = ip;
-                        existing.connection_type = connType;
-                        existing.billing_cycle_day = cycleDay;
-                        existing.status = statusVal;
-                    }
-                } else {
-                    var nextId = localCusts.length ? (Math.max.apply(Math, localCusts.map(function(c){ return parseInt(c.id) || 0; })) + 1) : 1001;
-                    localCusts.push({
-                        id: nextId,
-                        customer_code: custCode || ('KT-' + nextId),
-                        full_name: fullName,
-                        phone_number: phone,
-                        cnic_id: cnic,
-                        area_sector: area,
-                        address: addr,
-                        package_id: pkgId,
-                        package_name: pkgName,
-                        assigned_ip_ipoe: ip,
-                        connection_type: connType,
-                        billing_cycle_day: cycleDay,
-                        status: statusVal,
-                        days_remaining: 30,
-                        expiry_date: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0]
-                    });
-                }
-
-                // 1. Instant Local UI Update
-                self.setStoredCustomers(localCusts);
-                self.fetchCustomers();
-                self.populateCustomerAndPackageSelects();
-
-                // 2. Background API Sync
-                var user = self.getUserSession();
-                var data = $(this).serialize() + '&action=kt_save_customer&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
-                $.post(ktConfig.ajaxUrl, data, function(res) {
-                    $submitBtn.prop('disabled', false).text(origText);
-                    alert('✅ Subscriber saved successfully & active!');
-                    $('#kt-customer-modal, #kt-modal-backdrop').hide();
-                }).fail(function() {
-                    $submitBtn.prop('disabled', false).text(origText);
-                    alert('✅ Subscriber saved successfully & active!');
-                    $('#kt-customer-modal, #kt-modal-backdrop').hide();
-                });
-            });
-            });
-
-            // 2. Add / Edit Package Form Submit
-            $(document).on('click', '#btn-add-package', function() {
-                $('#kt-package-form')[0].reset();
-                $('#kt-package-form input[name="id"]').val(0);
-                $('#package-modal-title').text('Create Package Tier');
-                $('#pkg-margin-preview').text('PKR 1000.00');
-                $('#kt-modal-backdrop').show();
-                $('#kt-package-modal').css('display', 'flex');
-            });
-
-            $(document).on('click', '.btn-edit-package', function() {
-                var p = $(this).data('json');
-                $('#kt-package-form input[name="id"]').val(p.id);
-                $('#kt-package-form input[name="package_name"]').val(p.package_name);
-                $('#kt-package-form input[name="speed_mbps"]').val(p.speed_mbps);
-                $('#kt-package-form input[name="cost_price"]').val(p.cost_price || 0);
-                $('#kt-package-form input[name="sale_price"]').val(p.sale_price);
-                $('#kt-package-form select[name="status"]').val(p.status);
-
-                var margin = Math.max(0, parseFloat(p.sale_price) - parseFloat(p.cost_price || 0));
-                $('#pkg-margin-preview').text('PKR ' + margin.toFixed(2));
-
-                $('#package-modal-title').text('Edit Package Tier');
-                $('#kt-modal-backdrop').show();
-                $('#kt-package-modal').css('display', 'flex');
-            });
-
-            $(document).on('submit', '#kt-package-form', function(e) {
-                e.preventDefault();
-                var $submitBtn = $(this).find('button[type="submit"]');
-                var origText = $submitBtn.text();
-                $submitBtn.prop('disabled', true).text('Saving...');
-
-                var rawFormId = $('#kt-package-form input[name="id"]').val();
-                var formId = parseInt(rawFormId) || 0;
-                var pkgName = $('#kt-package-form input[name="package_name"]').val().trim();
-                var speed = parseInt($('#kt-package-form input[name="speed_mbps"]').val()) || 10;
-                var cost = parseFloat($('#kt-package-form input[name="cost_price"]').val()) || 0;
-                var sale = parseFloat($('#kt-package-form input[name="sale_price"]').val()) || 0;
-                var statusVal = $('#kt-package-form select[name="status"]').val() || 'active';
-                var margin = Math.max(0, sale - cost);
-
-                var localPkgs = self.getStoredPackages();
-                if (formId > 0) {
-                    var existing = localPkgs.find(function(p) { return parseInt(p.id) === formId; });
-                    if (existing) {
-                        existing.package_name = pkgName;
-                        existing.speed_mbps = speed;
-                        existing.cost_price = cost;
-                        existing.sale_price = sale;
-                        existing.margin = margin;
-                        existing.status = statusVal;
-                    }
-                } else {
-                    var nextId = localPkgs.length ? (Math.max.apply(Math, localPkgs.map(function(p){ return parseInt(p.id) || 0; })) + 1) : 1;
-                    localPkgs.push({
-                        id: nextId,
-                        package_name: pkgName,
-                        speed_mbps: speed,
-                        cost_price: cost,
-                        sale_price: sale,
-                        margin: margin,
-                        status: statusVal
-                    });
-                }
-
-                // 1. Instant Local UI Update
-                self.setStoredPackages(localPkgs);
-                self.renderPackagesTable(localPkgs, true);
-                self.populateCustomerAndPackageSelects();
-
-                // 2. Background API Sync
-                var user = self.getUserSession();
-                var data = $(this).serialize() + '&action=kt_save_package&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
-                $.post(ktConfig.ajaxUrl, data, function(res) {
-                    $submitBtn.prop('disabled', false).text(origText);
-                    alert('✅ Package saved successfully & active!');
-                    $('#kt-package-modal, #kt-modal-backdrop').hide();
-                }).fail(function() {
-                    $submitBtn.prop('disabled', false).text(origText);
-                    alert('✅ Package saved successfully & active!');
-                    $('#kt-package-modal, #kt-modal-backdrop').hide();
-                });
-            });
-
-            // Delete Package from Table Row
-            $(document).on('click', '.btn-delete-package', function() {
-                var id = parseInt($(this).data('id'));
-                var name = $(this).data('name');
-                if (confirm('Are you sure you want to delete broadband package: ' + name + '?')) {
-                    var localPkgs = self.getStoredPackages().filter(function(p) { return parseInt(p.id) !== id; });
-                    self.setStoredPackages(localPkgs);
-                    self.renderPackagesTable(localPkgs, true);
-                    self.populateCustomerAndPackageSelects();
-
-                    var u = self.getUserSession();
-                    $.post(ktConfig.ajaxUrl, { action: 'kt_delete_package', nonce: ktConfig.nonce, package_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level });
-                }
-            });
-                }
-            });
-
-            // 2.5 Product Buying Stock & Hardware Selling Actions
-            $(document).on('click', '#btn-add-product', function() {
-                $('#kt-product-form')[0].reset();
-                $('#kt-product-form input[name="id"]').val(0);
-                $('#product-modal-title').text('Buy / Add Hardware Product Stock');
-                $('#kt-product-modal, #kt-modal-backdrop').show();
-            });
-
-            $(document).on('click', '.btn-edit-product', function() {
-                var p = $(this).data('json');
-                $('#kt-product-form input[name="id"]').val(p.id);
-                $('#kt-product-form input[name="product_name"]').val(p.product_name);
-                $('#kt-product-form select[name="category"]').val(p.category);
-                $('#kt-product-form input[name="unit"]').val(p.unit);
-                $('#kt-product-form input[name="cost_price"]').val(p.cost_price || 0);
-                $('#kt-product-form input[name="sale_price"]').val(p.sale_price);
-                $('#kt-product-form input[name="stock_qty"]').val(p.stock_qty);
-
-                $('#product-modal-title').text('Edit Inventory Stock Entry');
-                $('#kt-product-modal, #kt-modal-backdrop').show();
-            });
-
-            // Delete Hardware Product
-            $(document).on('click', '.btn-delete-product', function() {
-                var id = $(this).data('id');
-                var name = $(this).data('name');
-                if (confirm('Are you sure you want to delete hardware product: ' + name + '?')) {
-                    var u = self.getUserSession();
-                    $.post(ktConfig.ajaxUrl, { action: 'kt_delete_product', nonce: ktConfig.nonce, product_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
-                        if (res.success) {
-                            alert('✅ ' + res.data.message);
-                            self.fetchProducts();
-                            self.fetchDashboardStats(true);
-                        } else {
-                            alert(res.data.message || 'Error deleting product');
-                        }
-                    });
-                }
-            });
-
-            $(document).on('submit', '#kt-product-form', function(e) {
-                e.preventDefault();
-                var user = self.getUserSession();
-                var data = $(this).serialize() + '&action=kt_save_product&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
-                $.post(ktConfig.ajaxUrl, data, function(res) {
-                    if (res.success) {
-                        alert('✅ Stock Entry Completed OK!\n\n' + res.data.message);
-                        $('#kt-product-modal, #kt-modal-backdrop').hide();
-                        self.fetchProducts();
-                        self.fetchDashboardStats(true);
-                    } else {
-                        alert(res.data.message || 'Error saving product');
-                    }
-                });
-            });
-
-            // Open Sell Hardware Modal & Populate Dropdowns
-            $(document).on('click', '#btn-sell-product-modal-open', function() {
-                self.fetchProducts();
-                self.populateCustomerAndPackageSelects();
-
-                // Populate sell customer dropdown
-                $.post(ktConfig.ajaxUrl, { action: 'kt_get_customers', nonce: ktConfig.nonce }, function(res) {
-                    if (res.success) {
-                        var opts = '<option value="">-- Select Subscriber --</option>';
-                        res.data.customers.forEach(function(c) {
-                            opts += `<option value="${c.id}">${c.customer_code} - ${c.full_name} (${c.area_sector})</option>`;
-                        });
-                        $('#sell-customer-select').html(opts);
-                    }
-                });
-
-                $('#kt-sell-product-modal, #kt-modal-backdrop').show();
-            });
-
-            // Quick Sell Product & WhatsApp Receipt from Product Table Row
-            $(document).on('click', '.btn-sell-product-row', function() {
-                var prodId = $(this).data('id');
-                self.fetchProducts();
-                self.populateCustomerAndPackageSelects();
-
-                $.post(ktConfig.ajaxUrl, { action: 'kt_get_customers', nonce: ktConfig.nonce }, function(res) {
-                    if (res.success) {
-                        var opts = '<option value="">-- Select Subscriber --</option>';
-                        res.data.customers.forEach(function(c) {
-                            opts += `<option value="${c.id}">${c.customer_code} - ${c.full_name} (${c.area_sector})</option>`;
-                        });
-                        $('#sell-customer-select').html(opts);
-                    }
-                    $('#sell-product-select').val(prodId).trigger('change');
-                    $('#kt-sell-product-modal, #kt-modal-backdrop').show();
-                });
-            });
-
-            // Hardware Sale Live Auto-Price Calculator
-            $('#sell-product-select, #sell-qty-input').on('change input', function() {
-                var $opt = $('#sell-product-select option:selected');
-                var unitPrice = parseFloat($opt.data('price')) || 0;
-                var qty = parseInt($('#sell-qty-input').val()) || 1;
-                var total = unitPrice * qty;
-
-                $('#sell-unit-price').val('PKR ' + unitPrice.toFixed(2));
-                $('#sell-total-preview').text('PKR ' + total.toFixed(2));
-            });
-
-            $(document).on('submit', '#kt-sell-product-form', function(e) {
-                e.preventDefault();
-                var user = self.getUserSession();
-                var data = $(this).serialize() + '&action=kt_sell_product&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
-                $.post(ktConfig.ajaxUrl, data, function(res) {
-                    if (res.success) {
-                        $('#kt-sell-product-modal').hide();
-                        self.fetchProducts();
-                        self.fetchDashboardStats(true);
-                        self.openReceiptModal(res.data.sale_id, 'sale');
-                    } else {
-                        alert(res.data.message || 'Error processing hardware sale');
-                    }
-                });
-            });
-
-            // 3. Create Invoice Modal
-            $(document).on('click', '#btn-create-invoice', function() {
-                self.populateCustomerAndPackageSelects();
-                $('#kt-invoice-modal, #kt-modal-backdrop').show();
-            });
-
-            $(document).on('submit', '#kt-invoice-form', function(e) {
-                e.preventDefault();
-                var user = self.getUserSession();
-                var data = $(this).serialize() + '&action=kt_create_invoice&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
-                $.post(ktConfig.ajaxUrl, data, function(res) {
-                    if (res.success) {
-                        alert(res.data.message);
-                        $('#kt-invoice-modal, #kt-modal-backdrop').hide();
-                        self.fetchInvoices();
-                        self.fetchDashboardStats(true);
-                    } else {
-                        alert(res.data.message || 'Error creating invoice');
-                    }
-                });
-            });
-
-            // Delete Invoice
-            $(document).on('click', '.btn-delete-invoice', function() {
-                var id = $(this).data('id');
-                var invNo = $(this).data('no');
-                if (confirm('Are you sure you want to delete invoice: ' + invNo + '?')) {
-                    var u = self.getUserSession();
-                    $.post(ktConfig.ajaxUrl, { action: 'kt_delete_invoice', nonce: ktConfig.nonce, invoice_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
-                        if (res.success) {
-                            alert('✅ ' + res.data.message);
-                            self.fetchInvoices();
-                            self.fetchDashboardStats(true);
-                        } else {
-                            alert(res.data.message || 'Error deleting invoice');
-                        }
-                    });
-                }
-            });
-
-            // Toggle Invoice Payment Status (Paid / Unpaid)
-            $(document).on('click', '.btn-toggle-inv-status', function() {
-                var id = $(this).data('id');
-                var newStatus = $(this).data('status');
-                var u = self.getUserSession();
-                $.post(ktConfig.ajaxUrl, { action: 'kt_toggle_invoice_status', nonce: ktConfig.nonce, invoice_id: id, status: newStatus, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
-                    if (res.success) {
-                        self.fetchInvoices();
-                        self.fetchDashboardStats(true);
-                    } else {
-                        alert(res.data.message || 'Error toggling invoice status');
-                    }
-                });
-            });
-
-            // 4. Collect Fee Payment Modal
-            $(document).on('click', '.btn-collect-pay', function() {
-                var invId = $(this).data('id');
-                var name = $(this).data('name');
-                var due = $(this).data('due');
-
-                $('#pay-invoice-id').val(invId);
-                $('#pay-customer-name').text('Subscriber: ' + name);
-                $('#pay-due-amount').text('Amount Due: PKR ' + parseFloat(due).toFixed(2));
-                $('#pay-amount-input').val(due);
-
-                $('#kt-payment-modal, #kt-modal-backdrop').show();
-            });
-
-            $(document).on('submit', '#kt-payment-form', function(e) {
-                e.preventDefault();
-                var user = self.getUserSession();
-                var data = $(this).serialize() + '&action=kt_collect_payment&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
-                $.post(ktConfig.ajaxUrl, data, function(res) {
-                    if (res.success) {
-                        $('#kt-payment-modal').hide();
-                        self.fetchInvoices();
-                        self.fetchDashboardStats(true);
-                        self.openReceiptModal(res.data.invoice_id, 'invoice');
-                    } else {
-                        alert(res.data.message || 'Error recording payment');
-                    }
-                });
-            });
-
-            // 5. Open Thermal Receipt & WhatsApp Modal
-            $(document).on('click', '.btn-view-receipt', function() {
-                var invId = $(this).data('id');
-                self.openReceiptModal(invId, 'invoice');
-            });
-
-            $('#btn-print-slip').on('click', function() {
-                window.print();
-            });
-
-            // Save Receipt Slip as Image
-            $(document).on('click', '#btn-save-image-slip', function() {
-                var target = $('#receipt-preview-container .kt-thermal-slip')[0];
-                if (!target) {
-                    alert('Receipt slip element not found.');
-                    return;
-                }
-                var $btn = $(this);
-                $btn.prop('disabled', true).text('Saving Image...');
-
-                if (typeof html2canvas !== 'undefined') {
-                    html2canvas(target, { scale: 2, backgroundColor: '#ffffff' }).then(function(canvas) {
-                        $btn.prop('disabled', false).html('💾 Save Image');
-                        var link = document.createElement('a');
-                        link.download = 'Khan_Telecom_Receipt_Slip_' + Date.now() + '.png';
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                    }).catch(function(err) {
-                        $btn.prop('disabled', false).html('💾 Save Image');
-                        alert('Error saving image: ' + err.message);
-                    });
-                } else {
-                    $btn.prop('disabled', false).html('💾 Save Image');
-                    alert('Image export module loading. Please try again in a moment.');
-                }
-            });
-
-            // Filters
-            $(document).on('click', '.btn-status-pill', function() {
-                $('.btn-status-pill').removeClass('active btn-primary btn-success btn-outline-danger').addClass('btn-secondary');
-                var st = $(this).data('status');
-                if (st === 'active') {
-                    $(this).removeClass('btn-secondary').addClass('active btn-success');
-                } else if (st === 'inactive') {
-                    $(this).removeClass('btn-secondary').addClass('active btn-outline-danger');
-                } else {
-                    $(this).removeClass('btn-secondary').addClass('active btn-primary');
-                }
-                $('#cust-status-filter').val(st);
-                self.fetchCustomers();
-            });
-
-            // Instant Real-Time Filter & Search Event Listeners
-            $(document).on('change input', '#inv-status-filter, #inv-search-input', function() {
-                self.fetchInvoices();
-            });
-
-            $(document).on('change input', '#cust-status-filter, #cust-search-input', function() {
-                var st = $('#cust-status-filter').val();
-                $('.btn-status-pill').removeClass('active btn-primary btn-success btn-outline-danger').addClass('btn-secondary');
-                if (st === 'active') {
-                    $('.btn-status-pill[data-status="active"]').removeClass('btn-secondary').addClass('active btn-success');
-                } else if (st === 'inactive') {
-                    $('.btn-status-pill[data-status="inactive"]').removeClass('btn-secondary').addClass('active btn-outline-danger');
-                } else {
-                    $('.btn-status-pill[data-status=""]').removeClass('btn-secondary').addClass('active btn-primary');
-                }
-                self.fetchCustomers();
-            });
-
-            $(document).on('click', '#btn-filter-customers', function() { self.fetchCustomers(); });
-            $(document).on('click', '#btn-filter-invoices', function() { self.fetchInvoices(); });
-            $(document).on('click', '#btn-refresh-dash', function() { self.fetchDashboardStats(false); });
-
-            // Clickable Dashboard Metric Cards -> Smooth Real-Time Tab Navigation & Data Fetching
-            $(document).on('click', '.metric-card-clickable', function() {
-                var view = $(this).data('view');
-                var filter = $(this).data('filter');
-
-                if (view) {
-                    window.location.hash = view;
-                    self.switchView(view, filter);
-                }
-            });
-
-            // Open Subscriber Ledger Modal
-            $(document).on('click', '.btn-view-ledger', function() {
-                var custId = $(this).data('id');
-                self.openLedgerModal(custId);
-            });
-
-            // Save Staff Permission & Approval Status (Super Admin Controller)
-            $(document).on('click', '.btn-save-staff-perm', function() {
-                var $row = $(this).closest('tr');
-                var targetUserId = $row.data('user-id');
-                var roleLevel = $row.find('.staff-role-select').val();
-                var canViewFinancials = $row.find('.chk-financials').is(':checked') ? 1 : 0;
-                var canManageCustomers = $row.find('.chk-customers').is(':checked') ? 1 : 0;
-                var canCreateInvoice = $row.find('.chk-invoices').is(':checked') ? 1 : 0;
-                var canCollectPayment = $row.find('.chk-collections').is(':checked') ? 1 : 0;
-                var approvalStatus = $row.find('.staff-approval-select').val();
-
-                var activeUser = self.getUserSession();
-
-                $.post(ktConfig.ajaxUrl, {
-                    action: 'kt_save_employee_permission',
-                    nonce: ktConfig.nonce,
-                    target_user_id: targetUserId,
-                    role_level: roleLevel,
-                    can_view_financials: canViewFinancials,
-                    can_manage_customers: canManageCustomers,
-                    can_create_invoice: canCreateInvoice,
-                    can_collect_payment: canCollectPayment,
-                    approval_status: approvalStatus,
-                    current_user_id: activeUser.user_id,
-                    current_user_name: activeUser.display_name,
-                    current_user_role: activeUser.role_level
-                }, function(res) {
-                    if (res.success) {
-                        alert('✅ ' + res.data.message);
-                        self.fetchStaffMatrix();
-                    } else {
-                        alert(res.data.message || 'Error updating staff permission');
-                    }
-                });
-            });
-        },
 
         /* ==================== 6. ACTIVITY LOGS AUDIT VIEW ==================== */
         loadLogsView: function() {
@@ -1687,29 +949,42 @@
             this.fetchActivityLogs();
         },
 
+        renderActivityLogs: function(logs) {
+            var rows = '';
+            if (logs && logs.length > 0) {
+                logs.forEach(function(l) {
+                    rows += '<tr>' +
+                        '<td><small>' + (l.created_at || 'Just now') + '</small></td>' +
+                        '<td><strong>' + (l.user_name || 'Saif Telecom') + '</strong></td>' +
+                        '<td><span class="badge badge-active">' + (l.role_level || 'SUPER_ADMIN').toUpperCase() + '</span></td>' +
+                        '<td><code>' + (l.action_type || 'audit_log') + '</code></td>' +
+                        '<td>' + l.description + '</td>' +
+                    '</tr>';
+                });
+            } else {
+                rows = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No activity logs recorded yet.</td></tr>';
+            }
+            $('#logs-table-body').html(rows);
+        },
+
         fetchActivityLogs: function() {
+            var logs = this.getStoredLogs();
+            this.renderActivityLogs(logs);
+
+            var self = this;
             $.post(ktConfig.ajaxUrl, { action: 'kt_get_activity_logs', nonce: ktConfig.nonce }, function(res) {
-                if (res.success) {
-                    var rows = '';
-                    if (res.data.logs && res.data.logs.length > 0) {
-                        res.data.logs.forEach(function(l) {
-                            rows += `
-                                <tr>
-                                    <td><small>${l.created_at}</small></td>
-                                    <td><strong>${l.user_name}</strong></td>
-                                    <td><span class="badge badge-active">${l.role_level.toUpperCase()}</span></td>
-                                    <td><code>${l.action_type}</code></td>
-                                    <td>${l.description}</td>
-                                </tr>
-                            `;
-                        });
-                    } else {
-                        rows = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No activity logs recorded yet.</td></tr>';
-                    }
-                    $('#logs-table-body').html(rows);
+                if (res && res.success && res.data && Array.isArray(res.data.logs)) {
+                    res.data.logs.forEach(function(sl) {
+                        var match = logs.find(function(ll) { return parseInt(ll.id) === parseInt(sl.id); });
+                        if (!match) logs.push(sl);
+                    });
+                    localStorage.setItem('kt_storage_logs', JSON.stringify(logs));
+                    self.renderActivityLogs(logs);
                 }
             });
         },
+
+        
 
         openLedgerModal: function(customerId) {
             var custs = this.getStoredCustomers();
