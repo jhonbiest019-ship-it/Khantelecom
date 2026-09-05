@@ -4,6 +4,14 @@
     {
       "source": "/api/ajax",
       "destination": "/api/ajax.js"
+    },
+    {
+      "source": "/api/ajax.js",
+      "destination": "/api/ajax.js"
+    },
+    {
+      "source": "/((?!api/|assets/|favicon.ico).*)",
+      "destination": "/index.html"
     }
   ]
 }
