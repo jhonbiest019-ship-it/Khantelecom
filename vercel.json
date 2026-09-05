@@ -10,7 +10,7 @@
       "destination": "/api/ajax.js"
     },
     {
-      "source": "/((?!api/|assets/|favicon.ico).*)",
+      "source": "/((?!api|assets|favicon.ico).*)",
       "destination": "/index.html"
     }
   ]
