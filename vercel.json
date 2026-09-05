@@ -1,9 +1,13 @@
 {
-  "cleanUrls": true,
+  "version": 2,
   "rewrites": [
     {
       "source": "/api/ajax",
       "destination": "/api/ajax.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
