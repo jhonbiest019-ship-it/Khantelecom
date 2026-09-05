@@ -91,10 +91,27 @@
             $(document).on('click', '#btn-open-change-pass-modal', function(e) {
                 e.preventDefault();
                 var u = self.getUserSession();
-                $('#change-pass-username').val(u.user_login);
                 $('#kt-change-password-form')[0].reset();
-                $('#change-pass-username').val(u.user_login);
+                $('#change-pass-username').val(u.user_login || 'irfan');
+                $('#change-pass-new, #change-pass-confirm').attr('type', 'password');
+                $('.btn-toggle-pass').text('👁️');
                 $('#kt-change-password-modal, #kt-modal-backdrop').show();
+            });
+
+            // Toggle Password Eye Visibility
+            $(document).on('click', '.btn-toggle-pass', function(e) {
+                e.preventDefault();
+                var targetSel = $(this).data('target');
+                var $input = $(targetSel);
+                if ($input.length) {
+                    if ($input.attr('type') === 'password') {
+                        $input.attr('type', 'text');
+                        $(this).text('🙈');
+                    } else {
+                        $input.attr('type', 'password');
+                        $(this).text('👁️');
+                    }
+                }
             });
 
             // Change Password Form Submit
@@ -105,14 +122,15 @@
 
                 $.post(ktConfig.ajaxUrl, data, function(res) {
                     if (res.success) {
-                        alert(res.data.message);
+                        alert('✅ ' + res.data.message);
                         if (res.data.updated_user) {
                             localStorage.setItem('kt_user', JSON.stringify(res.data.updated_user));
                             self.updateHeaderUserInfo();
                         }
                         $('#kt-change-password-modal, #kt-modal-backdrop').hide();
+                        self.loadAuditLogs();
                     } else {
-                        alert(res.data.message || 'Error updating password');
+                        alert('❌ ' + (res.data.message || 'Error updating password'));
                     }
                 });
             });
