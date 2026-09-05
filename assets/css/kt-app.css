@@ -212,7 +212,25 @@ body.kt-app-body {
 .kt-logo {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+}
+
+.kt-logo-img {
+    height: 46px;
+    width: 46px;
+    object-fit: cover;
+    border-radius: 50%;
+    background: #ffffff;
+    padding: 1px;
+    border: 2px solid rgba(218, 54, 51, 0.8);
+    box-shadow: 0 0 12px rgba(218, 54, 51, 0.4), 0 0 6px rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    flex-shrink: 0;
+}
+
+.kt-logo-img:hover {
+    transform: scale(1.08) rotate(3deg);
+    box-shadow: 0 0 20px rgba(218, 54, 51, 0.7);
 }
 
 .logo-badge {
