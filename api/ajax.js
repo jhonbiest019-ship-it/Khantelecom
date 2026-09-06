@@ -321,6 +321,80 @@ function processRequest(data, res) {
         } else {
             res.end(JSON.stringify({ success: false, data: { message: 'Subscriber not found.' } }));
         }
+    } else if (action === 'kt_bulk_import_customers') {
+        let imported = [];
+        try {
+            imported = JSON.parse(data.subscribers || '[]');
+        } catch(e) {}
+
+        if (!Array.isArray(imported) || imported.length === 0) {
+            res.end(JSON.stringify({ success: false, data: { message: 'No valid subscriber data received for import.' } }));
+        } else {
+            let addedCount = 0;
+            let updatedCount = 0;
+
+            imported.forEach(item => {
+                const code = (item.customer_code || '').trim();
+                const name = (item.full_name || '').trim();
+                if (!name) return;
+
+                const existing = customers.find(c => (code && c.customer_code === code) || (c.full_name.toLowerCase() === name.toLowerCase()));
+                const pkg = packages.find(p => p.id === parseInt(item.package_id) || p.package_name.toLowerCase().includes((item.package_name || '').toLowerCase()));
+
+                if (existing) {
+                    existing.full_name = name || existing.full_name;
+                    existing.phone_number = item.phone_number || existing.phone_number;
+                    existing.cnic_id = item.cnic_id || existing.cnic_id;
+                    existing.area_sector = item.area_sector || existing.area_sector;
+                    existing.address = item.address || existing.address;
+                    existing.package_id = pkg ? pkg.id : existing.package_id;
+                    existing.package_name = pkg ? pkg.package_name : (item.package_name || existing.package_name);
+                    existing.assigned_ip_ipoe = item.assigned_ip_ipoe || existing.assigned_ip_ipoe;
+                    existing.status = item.status || existing.status;
+                    updatedCount++;
+                } else {
+                    const autoNextId = customers.length ? Math.max(...customers.map(c => c.id)) + 1 : 1;
+                    const autoCode = code || 'KT-' + (1000 + autoNextId);
+                    const newCust = {
+                        id: autoNextId,
+                        customer_code: autoCode,
+                        full_name: name,
+                        phone_number: item.phone_number || '03000000000',
+                        cnic_id: item.cnic_id || '',
+                        area_sector: item.area_sector || 'General Sector',
+                        address: item.address || '',
+                        package_id: pkg ? pkg.id : 1,
+                        package_name: pkg ? pkg.package_name : (item.package_name || '10 Mbps Fiber Basic'),
+                        assigned_ip_ipoe: item.assigned_ip_ipoe || '192.168.10.100',
+                        connection_type: item.connection_type || 'Fiber_FTTH',
+                        billing_cycle_day: parseInt(item.billing_cycle_day) || 1,
+                        status: item.status || 'active',
+                        activated_at: new Date().toISOString()
+                    };
+                    customers.push(newCust);
+                    addedCount++;
+                }
+            });
+
+            activityLogs.unshift({
+                id: activityLogs.length + 1,
+                user_id: activeUserId,
+                user_name: activeUser,
+                role_level: activeRole,
+                action_type: 'bulk_import_subscribers',
+                description: `Bulk imported member sheet: ${addedCount} new subscribers registered, ${updatedCount} updated.`,
+                created_at: new Date().toLocaleString()
+            });
+
+            saveData();
+            res.end(JSON.stringify({
+                success: true,
+                data: {
+                    message: `🎉 Member sheet imported successfully! ${addedCount} new subscribers registered, ${updatedCount} updated in ERP.`,
+                    customers: customers
+                }
+            }));
+        }
     } else if (action === 'kt_get_packages') {
         const canEdit = activeRole === 'super_admin' || activeRole === 'admin';
         res.end(JSON.stringify({

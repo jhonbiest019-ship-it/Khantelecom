@@ -1,159 +1,6 @@
 {
-  "packages": [
-    {
-      "id": 1,
-      "package_name": "10 Mbps Fiber Starter VIP",
-      "speed_mbps": 15,
-      "cost_price": 700,
-      "sale_price": 1400,
-      "margin": 700,
-      "status": "active"
-    },
-    {
-      "id": 2,
-      "package_name": "20 Mbps Fiber Pro",
-      "speed_mbps": 20,
-      "cost_price": 1000,
-      "sale_price": 2000,
-      "margin": 1000,
-      "status": "active"
-    },
-    {
-      "id": 3,
-      "package_name": "50 Mbps Fiber Ultra",
-      "speed_mbps": 50,
-      "cost_price": 1800,
-      "sale_price": 3500,
-      "margin": 1700,
-      "status": "active"
-    },
-    {
-      "id": 4,
-      "package_name": "100 Mbps Enterprise Fiber",
-      "speed_mbps": 100,
-      "cost_price": 3000,
-      "sale_price": 6000,
-      "margin": 3000,
-      "status": "active"
-    },
-    {
-      "id": 5,
-      "package_name": "30 Mbps Gaming Fiber",
-      "speed_mbps": 30,
-      "cost_price": 1200,
-      "sale_price": 2500,
-      "margin": 1300,
-      "status": "active"
-    },
-    {
-      "id": 6,
-      "package_name": "30 Mbps Speed Test",
-      "speed_mbps": 30,
-      "cost_price": 1200,
-      "sale_price": 2500,
-      "margin": 1300,
-      "status": "active"
-    },
-    {
-      "id": 7,
-      "package_name": "50 Mbps VIP Pro",
-      "speed_mbps": 50,
-      "cost_price": 1800,
-      "sale_price": 3800,
-      "margin": 2000,
-      "status": "active"
-    },
-    {
-      "id": 8,
-      "package_name": "50Mbps Gaming Ultra",
-      "speed_mbps": 50,
-      "cost_price": 1500,
-      "sale_price": 3000,
-      "margin": 1500,
-      "status": "active"
-    },
-    {
-      "id": 9,
-      "package_name": "50Mbps Test",
-      "speed_mbps": 50,
-      "cost_price": 1500,
-      "sale_price": 3000,
-      "margin": 1500,
-      "status": "active"
-    },
-    {
-      "id": 10,
-      "package_name": "Test 100 Mbps",
-      "speed_mbps": 100,
-      "cost_price": 2000,
-      "sale_price": 4000,
-      "margin": 2000,
-      "status": "active"
-    },
-    {
-      "id": 11,
-      "package_name": "20 Mbps Fiber Pro Updated",
-      "speed_mbps": 25,
-      "cost_price": 1000,
-      "sale_price": 2200,
-      "margin": 1200,
-      "status": "active"
-    },
-    {
-      "id": 12,
-      "package_name": "30 Mbps Gaming Ultra",
-      "speed_mbps": 30,
-      "cost_price": 1500,
-      "sale_price": 3000,
-      "margin": 1500,
-      "status": "active"
-    },
-    {
-      "id": 13,
-      "package_name": "LocalhostTest100Mbps",
-      "speed_mbps": 100,
-      "cost_price": 3000,
-      "sale_price": 5500,
-      "margin": 2500,
-      "status": "active"
-    },
-    {
-      "id": 14,
-      "package_name": "Smooth200MbpsUltra",
-      "speed_mbps": 200,
-      "cost_price": 5000,
-      "sale_price": 9000,
-      "margin": 4000,
-      "status": "active"
-    },
-    {
-      "id": 15,
-      "package_name": "20mbps",
-      "speed_mbps": 20,
-      "cost_price": 1000,
-      "sale_price": 25000,
-      "margin": 24000,
-      "status": "active"
-    }
-  ],
-  "customers": [
-    {
-      "id": 7,
-      "customer_code": "KT-10000",
-      "full_name": "Muhammad Irfan",
-      "phone_number": "03366660334",
-      "cnic_id": "3740571455103",
-      "area_sector": "Sector F-11",
-      "address": "Qureshi Street\r\nQureshi house#2, Qureshi Street,Mohallah Farooqabad,Dhoke Mustaqeem,Peshawar Road,Rawalpindi Can't",
-      "package_id": 3,
-      "package_name": "50 Mbps Fiber Ultra",
-      "assigned_ip_ipoe": "",
-      "connection_type": "Fiber_FTTH",
-      "billing_cycle_day": 1,
-      "status": "active",
-      "activated_at": "2026-09-06T16:19:51.662Z"
-    }
-  ],
+  "packages": [],
+  "customers": [],
   "invoices": [
     {
       "id": 1,
@@ -241,6 +88,150 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": 43,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 50Mbps Test",
+      "created_at": "9/6/2026, 9:25:32 PM"
+    },
+    {
+      "id": 42,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 50Mbps Gaming Ultra",
+      "created_at": "9/6/2026, 9:25:28 PM"
+    },
+    {
+      "id": 41,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 50 Mbps VIP Pro",
+      "created_at": "9/6/2026, 9:25:26 PM"
+    },
+    {
+      "id": 40,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 30 Mbps Speed Test",
+      "created_at": "9/6/2026, 9:25:24 PM"
+    },
+    {
+      "id": 39,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: Test 100 Mbps",
+      "created_at": "9/6/2026, 9:25:17 PM"
+    },
+    {
+      "id": 38,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 20 Mbps Fiber Pro Updated",
+      "created_at": "9/6/2026, 9:25:16 PM"
+    },
+    {
+      "id": 37,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 30 Mbps Gaming Ultra",
+      "created_at": "9/6/2026, 9:25:10 PM"
+    },
+    {
+      "id": 36,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: LocalhostTest100Mbps",
+      "created_at": "9/6/2026, 9:25:05 PM"
+    },
+    {
+      "id": 35,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: Smooth200MbpsUltra",
+      "created_at": "9/6/2026, 9:25:01 PM"
+    },
+    {
+      "id": 34,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 20mbps",
+      "created_at": "9/6/2026, 9:24:56 PM"
+    },
+    {
+      "id": 33,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 30 Mbps Gaming Fiber",
+      "created_at": "9/6/2026, 9:24:37 PM"
+    },
+    {
+      "id": 32,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 100 Mbps Enterprise Fiber",
+      "created_at": "9/6/2026, 9:24:33 PM"
+    },
+    {
+      "id": 31,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 50 Mbps Fiber Ultra",
+      "created_at": "9/6/2026, 9:24:30 PM"
+    },
+    {
+      "id": 30,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 20 Mbps Fiber Pro",
+      "created_at": "9/6/2026, 9:24:27 PM"
+    },
+    {
+      "id": 29,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "package_delete",
+      "description": "Deleted broadband package: 10 Mbps Fiber Starter VIP",
+      "created_at": "9/6/2026, 9:24:23 PM"
+    },
+    {
+      "id": 28,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "customer_delete",
+      "description": "Deleted subscriber: Muhammad Irfan (KT-10000)",
+      "created_at": "9/6/2026, 9:24:14 PM"
+    },
     {
       "id": 27,
       "user_id": 1,

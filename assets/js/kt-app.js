@@ -1138,6 +1138,263 @@
                     self.switchView(view, filter);
                 }
             });
+
+            // --- SETTINGS & MEMBER SHEET IMPORTER HANDLERS ---
+            var parsedSubscribers = [];
+
+            $(document).on('click', '#btn-browse-file, #drop-zone-container', function() {
+                $('#member-sheet-input').click();
+            });
+
+            $(document).on('change', '#member-sheet-input', function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                parseMemberSheetFile(file);
+            });
+
+            $(document).on('dragover', '#drop-zone-container', function(e) {
+                e.preventDefault();
+                $(this).css('background', 'rgba(56, 139, 253, 0.15)');
+            });
+
+            $(document).on('dragleave drop', '#drop-zone-container', function(e) {
+                e.preventDefault();
+                $(this).css('background', 'rgba(56, 139, 253, 0.05)');
+                if (e.type === 'drop') {
+                    var file = e.originalEvent.dataTransfer.files[0];
+                    if (file) parseMemberSheetFile(file);
+                }
+            });
+
+            function parseMemberSheetFile(file) {
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    var content = evt.target.result;
+                    var records = [];
+
+                    if (file.name.endsWith('.json')) {
+                        try {
+                            var rawArr = JSON.parse(content);
+                            if (Array.isArray(rawArr)) records = rawArr;
+                            else if (rawArr.customers && Array.isArray(rawArr.customers)) records = rawArr.customers;
+                        } catch(err) {
+                            alert('Invalid JSON file format.');
+                            return;
+                        }
+                    } else {
+                        var lines = content.split(/\r\n|\n/);
+                        if (lines.length < 2) {
+                            alert('CSV sheet must contain a header row and at least 1 data row.');
+                            return;
+                        }
+
+                        var headers = lines[0].split(',').map(function(h) { return h.trim().replace(/^["']|["']$/g, '').toLowerCase(); });
+                        
+                        for (var i = 1; i < lines.length; i++) {
+                            var line = lines[i].trim();
+                            if (!line) continue;
+                            var cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(function(c) { return c.trim().replace(/^["']|["']$/g, ''); });
+
+                            var obj = {};
+                            headers.forEach(function(h, idx) {
+                                var val = cols[idx] || '';
+                                if (h.includes('code') || h.includes('id') || h.includes('account')) obj.customer_code = val;
+                                else if (h.includes('name') || h.includes('subscriber')) obj.full_name = val;
+                                else if (h.includes('phone') || h.includes('mobile') || h.includes('whatsapp')) obj.phone_number = val;
+                                else if (h.includes('cnic')) obj.cnic_id = val;
+                                else if (h.includes('area') || h.includes('sector')) obj.area_sector = val;
+                                else if (h.includes('address')) obj.address = val;
+                                else if (h.includes('package')) obj.package_name = val;
+                                else if (h.includes('ip')) obj.assigned_ip_ipoe = val;
+                                else if (h.includes('status')) obj.status = val.toLowerCase().includes('active') ? 'active' : 'inactive';
+                            });
+
+                            if (obj.full_name) {
+                                if (!obj.customer_code) obj.customer_code = 'KT-' + (1000 + i);
+                                if (!obj.phone_number) obj.phone_number = '03000000000';
+                                if (!obj.area_sector) obj.area_sector = 'General Sector';
+                                if (!obj.package_name) obj.package_name = '10 Mbps Fiber Basic';
+                                if (!obj.status) obj.status = 'active';
+                                records.push(obj);
+                            }
+                        }
+                    }
+
+                    if (records.length === 0) {
+                        alert('No valid subscriber records found in the uploaded file.');
+                        return;
+                    }
+
+                    parsedSubscribers = records;
+                    $('#preview-row-count').text(records.length);
+
+                    var rowsHtml = '';
+                    records.forEach(function(r) {
+                        var statusBadge = r.status === 'active' ? '<span class="badge badge-active">🟢 Active</span>' : '<span class="badge badge-suspended">🔴 Inactive</span>';
+                        rowsHtml += '<tr>' +
+                            '<td><strong>' + (r.customer_code || 'KT-Auto') + '</strong></td>' +
+                            '<td>' + r.full_name + '</td>' +
+                            '<td>' + (r.phone_number || 'N/A') + '</td>' +
+                            '<td>' + (r.cnic_id || 'N/A') + '</td>' +
+                            '<td>' + (r.area_sector || 'General') + '</td>' +
+                            '<td>' + (r.package_name || '10 Mbps Basic') + '</td>' +
+                            '<td><code>' + (r.assigned_ip_ipoe || '192.168.10.100') + '</code></td>' +
+                            '<td>' + statusBadge + '</td>' +
+                        '</tr>';
+                    });
+
+                    $('#preview-table-body').html(rowsHtml);
+                    $('#import-preview-section').show();
+                    self.showToast('Parsed ' + records.length + ' subscribers from Member Sheet!', 'success');
+                };
+                reader.readAsText(file);
+            }
+
+            $(document).on('click', '#btn-download-sample-csv', function(e) {
+                e.preventDefault();
+                var csvContent = "Subscriber Code,Full Name,Phone Number,CNIC ID,Area Sector,Full Address,Package Name,Assigned IP,Status\n" +
+                    "KT-2001,Muhammad Rashid,03001112233,35202-9876543-1,Sector F-11,House 45 Street 2,20 Mbps Fiber Pro,192.168.10.101,active\n" +
+                    "KT-2002,Usman Tariq,03214445566,35202-1239876-2,Sector E-7,House 12 Street 9,50 Mbps Fiber Ultra,192.168.10.102,active\n" +
+                    "KT-2003,Bilal Ahmed,03337778899,35202-5554443-3,Phase 2 Sector B,House 89,10 Mbps Fiber Basic,192.168.10.103,inactive\n";
+                
+                var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                var link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'KhanTelecom_Subscriber_Member_Sheet_Template.csv';
+                link.click();
+                self.showToast('Sample CSV Member Sheet template downloaded!', 'success');
+            });
+
+            $(document).on('click', '#btn-confirm-bulk-import', function(e) {
+                e.preventDefault();
+                if (!parsedSubscribers || parsedSubscribers.length === 0) return;
+
+                var $btn = $(this);
+                $btn.prop('disabled', true).text('Uploading & Importing Subscribers...');
+
+                var localCusts = self.getStoredCustomers();
+                var localPkgs = self.getStoredPackages();
+
+                parsedSubscribers.forEach(function(item) {
+                    var code = (item.customer_code || '').trim();
+                    var name = (item.full_name || '').trim();
+                    if (!name) return;
+
+                    var existing = localCusts.find(function(c) { return (code && c.customer_code === code) || (c.full_name.toLowerCase() === name.toLowerCase()); });
+                    var pkg = localPkgs.find(function(p) { return p.id === parseInt(item.package_id) || p.package_name.toLowerCase().includes((item.package_name || '').toLowerCase()); });
+
+                    if (existing) {
+                        existing.full_name = name || existing.full_name;
+                        existing.phone_number = item.phone_number || existing.phone_number;
+                        existing.cnic_id = item.cnic_id || existing.cnic_id;
+                        existing.area_sector = item.area_sector || existing.area_sector;
+                        existing.address = item.address || existing.address;
+                        existing.package_id = pkg ? pkg.id : existing.package_id;
+                        existing.package_name = pkg ? pkg.package_name : (item.package_name || existing.package_name);
+                        existing.assigned_ip_ipoe = item.assigned_ip_ipoe || existing.assigned_ip_ipoe;
+                        existing.status = item.status || existing.status;
+                    } else {
+                        var autoNextId = localCusts.length ? Math.max.apply(null, localCusts.map(function(c){return parseInt(c.id);})) + 1 : 1;
+                        var autoCode = code || 'KT-' + (1000 + autoNextId);
+                        localCusts.push({
+                            id: autoNextId,
+                            customer_code: autoCode,
+                            full_name: name,
+                            phone_number: item.phone_number || '03000000000',
+                            cnic_id: item.cnic_id || '',
+                            area_sector: item.area_sector || 'General Sector',
+                            address: item.address || '',
+                            package_id: pkg ? pkg.id : 1,
+                            package_name: pkg ? pkg.package_name : (item.package_name || '10 Mbps Fiber Basic'),
+                            assigned_ip_ipoe: item.assigned_ip_ipoe || '192.168.10.100',
+                            connection_type: item.connection_type || 'Fiber_FTTH',
+                            billing_cycle_day: parseInt(item.billing_cycle_day) || 1,
+                            status: item.status || 'active',
+                            activated_at: new Date().toISOString(),
+                            days_remaining: 30,
+                            expiry_date: '2026-10-06'
+                        });
+                    }
+                });
+
+                self.setStoredCustomers(localCusts);
+
+                var user = self.getUserSession();
+                $.post(ktConfig.ajaxUrl, {
+                    action: 'kt_bulk_import_customers',
+                    nonce: ktConfig.nonce,
+                    subscribers: JSON.stringify(parsedSubscribers),
+                    current_user_id: user.user_id,
+                    current_user_name: encodeURIComponent(user.display_name),
+                    current_user_role: user.role_level
+                }, function(res) {
+                    $btn.prop('disabled', false).text('🚀 Import All Subscribers to ERP System');
+                    self.showToast('🎉 ' + parsedSubscribers.length + ' subscribers imported successfully to ERP!', 'success');
+                    window.location.hash = 'customers';
+                    self.switchView('customers');
+                }).fail(function() {
+                    $btn.prop('disabled', false).text('🚀 Import All Subscribers to ERP System');
+                    self.showToast('🎉 ' + parsedSubscribers.length + ' subscribers saved locally!', 'success');
+                    window.location.hash = 'customers';
+                    self.switchView('customers');
+                });
+            });
+
+            $(document).on('click', '#btn-export-db-json', function(e) {
+                e.preventDefault();
+                var store = {
+                    customers: self.getStoredCustomers(),
+                    packages: self.getStoredPackages(),
+                    products: self.getStoredProducts(),
+                    invoices: self.getStoredInvoices(),
+                    staff: self.getStoredStaff(),
+                    logs: self.getStoredLogs()
+                };
+                var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(store, null, 2));
+                var downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", "KhanTelecom_Full_Database_Backup_" + Date.now() + ".json");
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                self.showToast('Full Database JSON exported!', 'success');
+            });
+
+            $(document).on('change', '#restore-db-json-input', function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    try {
+                        var store = JSON.parse(evt.target.result);
+                        if (store.customers) self.setStoredCustomers(store.customers);
+                        if (store.packages) self.setStoredPackages(store.packages);
+                        if (store.products) self.setStoredProducts(store.products);
+                        if (store.invoices) self.setStoredInvoices(store.invoices);
+                        if (store.staff) self.setStoredStaff(store.staff);
+                        if (store.logs) self.setStoredLogs(store.logs);
+                        self.showToast('Database JSON restored successfully!', 'success');
+                        self.switchView('dashboard');
+                    } catch(err) {
+                        alert('Error restoring database JSON file.');
+                    }
+                };
+                reader.readAsText(file);
+            });
+
+            $(document).on('click', '#btn-reset-demo-data', function(e) {
+                e.preventDefault();
+                if (confirm('⚠️ WARNING: This will reset all local subscribers, invoices, products, and packages to system defaults. Continue?')) {
+                    localStorage.removeItem('kt_storage_customers');
+                    localStorage.removeItem('kt_storage_packages');
+                    localStorage.removeItem('kt_storage_products');
+                    localStorage.removeItem('kt_storage_invoices');
+                    localStorage.removeItem('kt_storage_staff');
+                    localStorage.removeItem('kt_storage_logs');
+                    self.showToast('Database reset to defaults!', 'danger');
+                    self.switchView('dashboard');
+                }
+            });
         },
 
         switchView: function(viewName, targetFilter) {
@@ -1169,6 +1426,9 @@
                     break;
                 case 'logs':
                     this.loadLogsView();
+                    break;
+                case 'settings':
+                    this.loadSettingsView();
                     break;
                 default:
                     this.loadDashboardView();
@@ -1946,6 +2206,95 @@
                     self.renderActivityLogs(logs);
                 }
             });
+        },
+
+        /* ==================== 8. SETTINGS & MEMBER SHEET IMPORT VIEW ==================== */
+        loadSettingsView: function() {
+            var html = `
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">System Settings & Bulk Subscriber Import</h2>
+                        <p style="font-size:12px; color: var(--text-muted);">Upload your Member Sheet (CSV / Excel / JSON) to import subscribers in bulk, or manage database backups.</p>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="gap:20px; margin-bottom:24px;">
+                    <!-- Member Sheet Importer Box -->
+                    <div class="card" style="padding:20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius:12px;">
+                        <h3 style="margin-top:0; font-size:18px; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                            <span>📁</span> Upload Subscriber Member Sheet
+                        </h3>
+                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                            Supported Formats: <code>.csv</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.json</code>.<br>
+                            Supported Columns: <strong>Subscriber Code, Full Name, Phone, CNIC, Area Sector, Address, Package Name, Assigned IP, Status</strong>.
+                        </p>
+
+                        <div id="drop-zone-container" style="border: 2px dashed var(--accent); border-radius:12px; padding:30px 20px; text-align:center; cursor:pointer; background: rgba(56, 139, 253, 0.05); transition: background 0.2s ease;">
+                            <div style="font-size:40px; margin-bottom:8px;">📥</div>
+                            <h4 style="margin:0 0 6px 0; font-size:15px; color:var(--text-main);">Click or Drag & Drop Member Sheet Here</h4>
+                            <p style="margin:0; font-size:12px; color:var(--text-muted);">Select CSV or Excel Member Sheet file from your computer</p>
+                            <input type="file" id="member-sheet-input" accept=".csv, .xlsx, .xls, .json" style="display:none;">
+                        </div>
+
+                        <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+                            <button id="btn-download-sample-csv" class="btn btn-secondary btn-sm">📋 Download Sample CSV Template</button>
+                            <button id="btn-browse-file" class="btn btn-primary btn-sm">📁 Select File</button>
+                        </div>
+                    </div>
+
+                    <!-- System Backup & Database Control Card -->
+                    <div class="card" style="padding:20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius:12px;">
+                        <h3 style="margin-top:0; font-size:18px; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                            <span>💾</span> Database Management & Local Backup
+                        </h3>
+                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                            Export full ERP database snapshot or reset data to initial defaults.
+                        </p>
+
+                        <div style="display:flex; flex-direction:column; gap:12px;">
+                            <button id="btn-export-db-json" class="btn btn-secondary">📥 Export Full Database JSON</button>
+                            <label class="btn btn-secondary" style="margin:0; text-align:center; cursor:pointer;">
+                                📤 Restore Database JSON
+                                <input type="file" id="restore-db-json-input" accept=".json" style="display:none;">
+                            </label>
+                            <button id="btn-reset-demo-data" class="btn btn-outline-danger">⚠️ Reset Database to Defaults</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parsed Preview Sheet Table Section -->
+                <div id="import-preview-section" style="display:none; margin-top:20px;">
+                    <div class="section-header">
+                        <div>
+                            <h3 style="margin:0; font-size:16px; color:var(--text-main);">Sheet Data Preview (<span id="preview-row-count">0</span> Subscribers Found)</h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin:4px 0 0 0;">Review parsed subscriber records before uploading to ERP engine.</p>
+                        </div>
+                        <button id="btn-confirm-bulk-import" class="btn btn-success btn-lg">🚀 Import All Subscribers to ERP System</button>
+                    </div>
+
+                    <div class="kt-table-container" style="max-height:350px; overflow-y:auto;">
+                        <table class="kt-table">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Full Name</th>
+                                    <th>Phone</th>
+                                    <th>CNIC</th>
+                                    <th>Area / Sector</th>
+                                    <th>Package</th>
+                                    <th>Assigned IP</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            $('#kt-view-loader').hide();
+            $('#kt-view-content').html(html).show();
         },
 
         
