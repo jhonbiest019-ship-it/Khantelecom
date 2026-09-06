@@ -1185,6 +1185,50 @@
                 }
             });
 
+            // --- SUBSCRIBERS DIRECTORY REAL-TIME FILTER HANDLERS ---
+            $(document).on('click', '.btn-status-pill', function(e) {
+                e.preventDefault();
+                var status = $(this).attr('data-status');
+                status = (status !== undefined && status !== null) ? String(status) : '';
+
+                $('.btn-status-pill').removeClass('active btn-primary btn-success btn-outline-danger').addClass('btn-secondary');
+                
+                if (status === 'active') {
+                    $(this).removeClass('btn-secondary').addClass('btn-success active');
+                } else if (status === 'inactive') {
+                    $(this).removeClass('btn-secondary').addClass('btn-outline-danger active');
+                } else {
+                    $(this).removeClass('btn-secondary').addClass('btn-primary active');
+                }
+
+                $('#cust-status-filter').val(status);
+                self.fetchCustomers();
+            });
+
+            $(document).on('keyup input paste search', '#cust-search-input', function() {
+                self.fetchCustomers();
+            });
+
+            $(document).on('change', '#cust-status-filter', function() {
+                var status = $(this).val();
+                $('.btn-status-pill').removeClass('active btn-primary btn-success btn-outline-danger').addClass('btn-secondary');
+                
+                if (status === 'active') {
+                    $('.btn-status-pill[data-status="active"]').removeClass('btn-secondary').addClass('btn-success active');
+                } else if (status === 'inactive') {
+                    $('.btn-status-pill[data-status="inactive"]').removeClass('btn-secondary').addClass('btn-outline-danger active');
+                } else {
+                    $('.btn-status-pill[data-status=""]').removeClass('btn-secondary').addClass('btn-primary active');
+                }
+
+                self.fetchCustomers();
+            });
+
+            $(document).on('click', '#btn-filter-customers', function(e) {
+                e.preventDefault();
+                self.fetchCustomers();
+            });
+
             // --- SETTINGS & MEMBER SHEET IMPORTER HANDLERS ---
             var parsedSubscribers = [];
 
@@ -1872,8 +1916,20 @@
             this.fetchCustomers();
         },
 
+        isSubscriberActive: function(c) {
+            if (!c) return false;
+            var s = String(c.status || c.profile_status || '').toLowerCase().trim();
+            if (s.includes('inact') || s.includes('susp') || s.includes('expir') || s.includes('disab') || s.includes('off') || s.includes('🔴') || s === '0' || s === 'false') {
+                return false;
+            }
+            return true;
+        },
+
         renderCustomersTable: function(custs, search, statusFilter) {
             search = (search || '').toLowerCase();
+            statusFilter = (statusFilter !== undefined && statusFilter !== null) ? String(statusFilter).toLowerCase() : '';
+
+            var self = this;
             var filtered = custs.filter(function(c) {
                 var matchesSearch = !search || 
                     (c.full_name || '').toLowerCase().includes(search) || 
@@ -1882,13 +1938,18 @@
                     (c.cnic_id || '').toLowerCase().includes(search) || 
                     (c.address || '').toLowerCase().includes(search) || 
                     (c.package_name || '').toLowerCase().includes(search);
-                var matchesStatus = !statusFilter || c.status === statusFilter;
+
+                var isActive = self.isSubscriberActive(c);
+                var matchesStatus = true;
+                if (statusFilter === 'active') matchesStatus = isActive;
+                else if (statusFilter === 'inactive') matchesStatus = !isActive;
+
                 return matchesSearch && matchesStatus;
             });
 
             var totalCount = custs.length;
-            var activeCount = custs.filter(function(c) { return c.status === 'active'; }).length;
-            var inactiveCount = custs.filter(function(c) { return c.status !== 'active'; }).length;
+            var activeCount = custs.filter(function(c) { return self.isSubscriberActive(c); }).length;
+            var inactiveCount = totalCount - activeCount;
 
             $('#count-total').text(totalCount);
             $('#count-active').text(activeCount);
@@ -1897,15 +1958,12 @@
             var rows = '';
             if (filtered.length > 0) {
                 filtered.forEach(function(c) {
-                    var statusBadge = '';
+                    var isActive = self.isSubscriberActive(c);
+                    var statusBadge = isActive ? '<span class="badge badge-active">🟢 Active</span>' : '<span class="badge badge-suspended">🔴 Expired</span>';
                     var alertBtn = '';
-                    var connBadge = c.conn_status === 'Offline' ? '<span class="badge badge-suspended">🔴 Offline</span>' : '<span class="badge badge-active">🟢 Online</span>';
+                    var connBadge = (c.conn_status === 'Offline' || !isActive) ? '<span class="badge badge-suspended">🔴 Offline</span>' : '<span class="badge badge-active">🟢 Online</span>';
 
-                    if (c.status === 'active') {
-                        statusBadge = '<span class="badge badge-active">🟢 Active</span>';
-                    } else {
-                        statusBadge = '<span class="badge badge-suspended">🔴 Expired</span>';
-
+                    if (!isActive) {
                         var cleanPhone = (c.phone_number || '').replace(/^0/, '92');
                         var alertTextRaw = '🚨 *KHAN TELECOM PACKAGE EXPIRY ALERT* 🚨\n----------------------------------\nDear Subscriber: *' + c.full_name + '*\nSubscriber ID: *' + c.customer_code + '*\nArea/Address: *' + (c.address || c.area_sector) + '*\n\n⚠️ Your Broadband Package (*' + (c.package_name || 'Premier-5') + '*) has *EXPIRED*.\nExpiration Date: *' + (c.expiry_date || 'N/A') + '*\n\n💡 Please renew your monthly package fee (PKR ' + (c.monthly_due || 1200) + ') to continue enjoying internet service.\n==================================\nContact Khan Telecom Office for instant renewal.\n*Developed by Muhammad Irfan*';
                         var waAlertUrl = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(alertTextRaw);
@@ -1919,8 +1977,8 @@
                         '<td>' + (c.phone_number || 'N/A') + '</td>' +
                         '<td><small style="color:var(--text-muted);">' + (c.cnic_id || 'N/A') + '</small></td>' +
                         '<td><span class="badge" style="background:rgba(56, 139, 253, 0.15); color:var(--accent);">' + (c.package_name || 'Premier-5') + '</span></td>' +
-                        '<td><code>' + (c.password || '1234') + '</code></td>' +
-                        '<td><small style="color:var(--text-muted);">' + (c.nas || 'K030-BRAS2') + '</small></td>' +
+                        '<td><code>' + (c.account_password || c.password || '1234') + '</code></td>' +
+                        '<td><small style="color:var(--text-muted);">' + (c.nas_server || c.nas || 'K030-BRAS2') + '</small></td>' +
                         '<td>' + connBadge + '</td>' +
                         '<td>' + statusBadge + '</td>' +
                         '<td><strong style="color:#7ee787;">PKR ' + parseFloat(c.monthly_due || c.package_price || 0).toLocaleString() + '</strong></td>' +
