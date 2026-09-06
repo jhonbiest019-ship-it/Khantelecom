@@ -569,6 +569,38 @@
                 });
             });
 
+            
+            // Activate / Renew Subscriber Package 30-Day Cycle
+            $(document).on('click', '.btn-activate-customer', function(e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                
+                var custs = self.getStoredCustomers();
+                var c = custs.find(function(item) { return parseInt(item.id) === parseInt(id); });
+                if (c) {
+                    c.status = 'active';
+                    c.activated_at = new Date().toISOString();
+                    c.days_remaining = 30;
+                    self.setStoredCustomers(custs);
+                    self.renderCustomersTable(custs);
+                    self.showToast('Subscriber ' + name + ' 30-day package activated & renewed!', 'success');
+                }
+
+                var u = self.getUserSession();
+                $.post(ktConfig.ajaxUrl, {
+                    action: 'kt_activate_customer',
+                    nonce: ktConfig.nonce,
+                    customer_id: id,
+                    current_user_id: u.user_id,
+                    current_user_name: encodeURIComponent(u.display_name),
+                    current_user_role: u.role_level
+                }, function(res) {
+                    self.fetchCustomers();
+                    self.fetchDashboardStats(true);
+                });
+            });
+
             // --- 3. INVOICES & PAYMENTS HANDLERS ---
             $(document).on('click', '#btn-create-invoice', function() {
                 var custs = self.getStoredCustomers();
@@ -961,6 +993,24 @@
                 search: search,
                 status: status
             }, function(res) {
+                if (res && res.success && Array.isArray(res.data)) {
+                    res.data.forEach(function(sc) {
+                        var match = localCusts.find(function(lc) { return parseInt(lc.id) === parseInt(sc.id); });
+                        if (!match) {
+                            localCusts.push(sc);
+                        } else {
+                            match.status = sc.status;
+                            match.days_remaining = sc.days_remaining;
+                            match.expiry_date = sc.expiry_date;
+                            match.activated_at = sc.activated_at;
+                            match.package_name = sc.package_name;
+                        }
+                    });
+                    self.setStoredCustomers(localCusts);
+                    self.renderCustomersTable(localCusts, search, status);
+                }
+            });
+        },, function(res) {
                 if (res && res.success && Array.isArray(res.data)) {
                     res.data.forEach(function(sc) {
                         var match = localCusts.find(function(lc) { return parseInt(lc.id) === parseInt(sc.id); });

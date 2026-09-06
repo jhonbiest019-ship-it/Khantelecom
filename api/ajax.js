@@ -284,6 +284,28 @@ function processRequest(data, res) {
             saveData();
             res.end(JSON.stringify({ success: true, data: { message: `Subscriber ${newCust.full_name} registered successfully & activated in ERP!` } }));
         }
+    
+    } else if (action === 'kt_activate_customer') {
+        const id = parseInt(data.customer_id) || 0;
+        const cust = customers.find(c => c.id === id);
+        if (cust) {
+            cust.status = 'active';
+            cust.activated_at = new Date().toISOString();
+            activityLogs.unshift({
+                id: activityLogs.length + 1,
+                user_id: activeUserId,
+                user_name: activeUser,
+                role_level: activeRole,
+                action_type: 'customer_renew_activate',
+                description: `Renewed 30-day package and activated subscriber ${cust.full_name} (${cust.customer_code})`,
+                created_at: new Date().toLocaleString()
+            });
+            saveData();
+            res.end(JSON.stringify({ success: true, data: { message: `Subscriber ${cust.full_name} 30-day package activated & renewed!` } }));
+        } else {
+            res.end(JSON.stringify({ success: false, data: { message: 'Subscriber not found.' } }));
+        }
+
     } else if (action === 'kt_delete_customer') {
         const rawId = (data.id !== undefined && data.id !== '0' && data.id !== 0 && data.id !== '') ? data.id : data.customer_id;
         const id = parseInt(rawId) || 0;

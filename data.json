@@ -142,7 +142,7 @@
       "connection_type": "Fiber_FTTH",
       "billing_cycle_day": 1,
       "status": "active",
-      "activated_at": "2026-09-05T18:38:21.660Z"
+      "activated_at": "2026-09-06T15:43:27.937Z"
     },
     {
       "id": 2,
@@ -158,7 +158,7 @@
       "connection_type": "Fiber_FTTH",
       "billing_cycle_day": 1,
       "status": "active",
-      "activated_at": "2026-09-05T18:39:38.043Z"
+      "activated_at": "2026-09-06T15:43:27.937Z"
     },
     {
       "id": 3,
@@ -174,7 +174,7 @@
       "connection_type": "Fiber_FTTH",
       "billing_cycle_day": 1,
       "status": "active",
-      "activated_at": "2026-09-05T18:53:47.580Z"
+      "activated_at": "2026-09-06T15:43:27.937Z"
     },
     {
       "id": 4,
@@ -190,7 +190,7 @@
       "connection_type": "Fiber_FTTH",
       "billing_cycle_day": 5,
       "status": "active",
-      "activated_at": "2026-09-05T18:56:41.600Z"
+      "activated_at": "2026-09-06T15:43:27.937Z"
     },
     {
       "id": 5,
@@ -206,7 +206,7 @@
       "connection_type": "Fiber_FTTH",
       "billing_cycle_day": 1,
       "status": "active",
-      "activated_at": "2026-09-05T20:04:18.286Z"
+      "activated_at": "2026-09-06T15:43:27.937Z"
     },
     {
       "id": 6,
@@ -222,7 +222,7 @@
       "connection_type": "Fiber_FTTH",
       "billing_cycle_day": 1,
       "status": "active",
-      "activated_at": "2026-09-06T15:36:16.913Z"
+      "activated_at": "2026-09-06T15:43:27.937Z"
     }
   ],
   "invoices": [],
