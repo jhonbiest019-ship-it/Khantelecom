@@ -373,6 +373,25 @@
             } catch(e) { console.error(e); }
         },
 
+        
+        openEditProductModal: function(elem) {
+            try {
+                var p = $(elem).data('json');
+                if (typeof p === 'string') { try { p = JSON.parse(p); } catch(e) {} }
+                if ($('#kt-product-form').length) $('#kt-product-form')[0].reset();
+                $('#kt-product-form input[name="id"]').val(p.id);
+                $('#kt-product-form input[name="product_name"]').val(p.product_name);
+                $('#kt-product-form select[name="category"]').val(p.category || 'Routers');
+                $('#kt-product-form input[name="unit"]').val(p.unit || 'pcs');
+                $('#kt-product-form input[name="cost_price"]').val(p.cost_price);
+                $('#kt-product-form input[name="sale_price"]').val(p.sale_price);
+                $('#kt-product-form input[name="stock_qty"]').val(p.stock_qty);
+                $('#product-modal-title').text('Edit Hardware Product Stock');
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-product-modal').show().css('display', 'flex');
+            } catch(e) { console.error("Error opening edit product modal:", e); }
+        },
+
         openCreateProductModal: function() {
             try {
                 if ($('#kt-product-form').length) $('#kt-product-form')[0].reset();
@@ -734,6 +753,179 @@
             });
 
             // --- 3. INVOICES & PAYMENTS HANDLERS ---
+            
+            // --- HTML2CANVAS THERMAL RECEIPT SLIP IMAGE DOWNLOAD ---
+            $(document).on('click', '#btn-save-image-slip', function(e) {
+                e.preventDefault();
+                var elem = document.querySelector('.kt-thermal-slip') || document.querySelector('#receipt-preview-container');
+                if (elem && window.html2canvas) {
+                    html2canvas(elem, { scale: 2 }).then(function(canvas) {
+                        var link = document.createElement('a');
+                        link.download = 'KhanTelecom_Receipt_' + Date.now() + '.png';
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                        self.showToast('Receipt image downloaded successfully!', 'success');
+                    });
+                } else {
+                    self.showToast('Thermal slip preview ready!', 'success');
+                }
+            });
+
+            // --- HARDWARE PRODUCTS HANDLERS ---
+            $(document).on('submit', '#kt-product-form', function(e) {
+                e.preventDefault();
+                var user = self.getUserSession();
+                var formDataRaw = $(this).serializeArray();
+                var formData = {};
+                formDataRaw.forEach(function(item) { formData[item.name] = item.value; });
+
+                var prods = self.getStoredProducts();
+                var prodId = parseInt(formData.id) || 0;
+                var costPrice = parseFloat(formData.cost_price) || 0;
+                var salePrice = parseFloat(formData.sale_price) || 0;
+                var stockQty = parseInt(formData.stock_qty) || 1;
+
+                var updatedProd = {
+                    id: prodId > 0 ? prodId : (prods.length > 0 ? Math.max.apply(null, prods.map(function(p){return parseInt(p.id);})) + 1 : 1),
+                    product_name: formData.product_name,
+                    category: formData.category || 'Routers',
+                    unit: formData.unit || 'pcs',
+                    cost_price: costPrice,
+                    sale_price: salePrice,
+                    margin: Math.max(0, salePrice - costPrice),
+                    stock_qty: stockQty
+                };
+
+                if (prodId > 0) {
+                    var idx = prods.findIndex(function(p) { return parseInt(p.id) === prodId; });
+                    if (idx !== -1) prods[idx] = updatedProd;
+                    else prods.push(updatedProd);
+                } else {
+                    prods.push(updatedProd);
+                }
+
+                self.setStoredProducts(prods);
+                self.renderProductsTable(prods);
+                self.showToast('Product ' + formData.product_name + ' stock saved!', 'success');
+                $('#kt-product-modal, #kt-modal-backdrop').hide();
+
+                var postData = $(this).serialize() + '&action=kt_save_product&nonce=' + ktConfig.nonce + '&product_id=' + prodId + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
+                $.post(ktConfig.ajaxUrl, postData, function(res) {
+                    self.fetchProducts();
+                });
+            });
+
+            $(document).on('submit', '#kt-sell-product-form', function(e) {
+                e.preventDefault();
+                var user = self.getUserSession();
+                var prodId = parseInt($('#sell-product-select').val());
+                var custId = parseInt($('#sell-customer-select').val());
+                var qty = parseInt($('#sell-qty-input').val()) || 1;
+
+                var prods = self.getStoredProducts();
+                var prod = prods.find(function(p) { return parseInt(p.id) === prodId; });
+                var custs = self.getStoredCustomers();
+                var cust = custs.find(function(c) { return parseInt(c.id) === custId; });
+
+                if (prod && cust) {
+                    prod.stock_qty = Math.max(0, parseInt(prod.stock_qty || 0) - qty);
+                    self.setStoredProducts(prods);
+                    self.renderProductsTable(prods);
+
+                    var totalBill = (parseFloat(prod.sale_price) * qty).toFixed(2);
+                    self.showToast('Sold ' + qty + 'x ' + prod.product_name + ' to ' + cust.full_name + ' (PKR ' + totalBill + ')!', 'success');
+                    $('#kt-sell-product-modal, #kt-modal-backdrop').hide();
+
+                    var cleanPhone = (cust.phone_number || '').replace(/^0/, '92');
+                    var waTextRaw = '📦 *KHAN TELECOM HARDWARE EQUIPMENT RECEIPT* 📦\n----------------------------------\n*SUBSCRIBER:* ' + cust.full_name + ' (' + cust.customer_code + ')\n*ITEM BOUGHT:* ' + prod.product_name + '\n*QUANTITY:* ' + qty + ' ' + (prod.unit || 'pcs') + '\n*UNIT RETAIL PRICE:* PKR ' + parseFloat(prod.sale_price).toFixed(2) + '\n----------------------------------\n*TOTAL BILL:* PKR ' + totalBill + ' ✅\n==================================\nThank you for choosing Khan Telecom!\n*Developed by Muhammad Irfan*';
+                    var waLink = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(waTextRaw);
+                    window.open(waLink, '_blank');
+
+                    var postData = $(this).serialize() + '&action=kt_sell_product&nonce=' + ktConfig.nonce + '&seller_id=' + user.user_id + '&seller_name=' + encodeURIComponent(user.display_name) + '&seller_role=' + user.role_level;
+                    $.post(ktConfig.ajaxUrl, postData, function(res) {
+                        self.fetchProducts();
+                    });
+                }
+            });
+
+            $(document).on('click', '.btn-delete-product', function(e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                if (confirm('Are you sure you want to delete product ' + name + '?')) {
+                    var prods = self.getStoredProducts().filter(function(p) { return parseInt(p.id) !== parseInt(id); });
+                    self.setStoredProducts(prods);
+                    self.renderProductsTable(prods);
+                    self.showToast('Product ' + name + ' deleted!', 'danger');
+
+                    var u = self.getUserSession();
+                    $.post(ktConfig.ajaxUrl, { action: 'kt_delete_product', nonce: ktConfig.nonce, product_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
+                        self.fetchProducts();
+                    });
+                }
+            });
+
+            $(document).on('click', '.btn-sell-product-row', function(e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                self.openSellProductModal();
+                $('#sell-product-select').val(id).trigger('change');
+            });
+
+            // --- INVOICE TOGGLE & DELETE HANDLERS ---
+            $(document).on('click', '.btn-toggle-inv-status', function(e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                var status = $(this).data('status');
+                var invs = self.getStoredInvoices();
+                var inv = invs.find(function(i) { return parseInt(i.id) === parseInt(id); });
+                if (inv) {
+                    inv.payment_status = status;
+                    if (status === 'paid') inv.paid_at = new Date().toLocaleString();
+                    self.setStoredInvoices(invs);
+                    self.renderInvoicesTable(invs);
+                    self.showToast('Invoice ' + inv.invoice_number + ' status set to ' + status.toUpperCase(), 'success');
+                }
+                var u = self.getUserSession();
+                $.post(ktConfig.ajaxUrl, {
+                    action: 'kt_toggle_invoice_status',
+                    nonce: ktConfig.nonce,
+                    invoice_id: id,
+                    payment_status: status,
+                    current_user_id: u.user_id,
+                    current_user_name: encodeURIComponent(u.display_name),
+                    current_user_role: u.role_level
+                }, function(res) {
+                    self.fetchInvoices();
+                    self.fetchDashboardStats(true);
+                });
+            });
+
+            $(document).on('click', '.btn-delete-invoice', function(e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                var no = $(this).data('no');
+                if (confirm('Are you sure you want to delete invoice ' + no + '?')) {
+                    var invs = self.getStoredInvoices().filter(function(i) { return parseInt(i.id) !== parseInt(id); });
+                    self.setStoredInvoices(invs);
+                    self.renderInvoicesTable(invs);
+                    self.showToast('Invoice ' + no + ' deleted!', 'danger');
+
+                    var u = self.getUserSession();
+                    $.post(ktConfig.ajaxUrl, {
+                        action: 'kt_delete_invoice',
+                        nonce: ktConfig.nonce,
+                        invoice_id: id,
+                        current_user_id: u.user_id,
+                        current_user_name: encodeURIComponent(u.display_name),
+                        current_user_role: u.role_level
+                    }, function(res) {
+                        self.fetchInvoices();
+                        self.fetchDashboardStats(true);
+                    });
+                }
+            });
+
             $(document).on('click', '#btn-create-invoice', function() {
                 var custs = self.getStoredCustomers();
                 var opts = '<option value="">-- Select Subscriber --</option>';
@@ -1308,7 +1500,7 @@
                         '<td>' + marginDisplay + '</td>' +
                         '<td>' +
                             '<div class="action-btn-group">' +
-                                '<button class="btn btn-sm btn-secondary btn-edit-product" data-json=\'' + JSON.stringify(p) + '\'>✏️ Edit</button>' +
+                                '<button class="btn btn-sm btn-secondary btn-edit-product" onclick="KT_App.openEditProductModal(this)" data-json=\'' + JSON.stringify(p) + '\'>✏️ Edit</button>' +
                                 '<button class="btn btn-sm btn-whatsapp btn-sell-product-row" data-id="' + p.id + '" data-name="' + p.product_name + '" data-price="' + p.sale_price + '">📱 Sell & WhatsApp</button>' +
                                 '<button class="btn btn-sm btn-outline-danger btn-delete-product" data-id="' + p.id + '" data-name="' + p.product_name + '">🗑️ Delete</button>' +
                             '</div>' +
