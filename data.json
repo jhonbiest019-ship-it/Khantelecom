@@ -57,25 +57,6 @@
   ],
   "customers": [
     {
-      "id": 68984,
-      "customer_code": "k026-aamir1",
-      "full_name": "aqib javed",
-      "phone_number": "03341623260",
-      "cnic_id": "14202-3245598",
-      "email": "k026aa1628@site.com",
-      "area_sector": "Rawalpindi",
-      "address": "House no. CB 1148 Qadria colony street no.3 Rawalpindi",
-      "package_id": 3,
-      "package_name": "Premier-7",
-      "password": "1234",
-      "nas": "BL006",
-      "conn_status": "Online",
-      "status": "active",
-      "monthly_due": 1185,
-      "expiry_date": "07 Sep 2026 11:59:00",
-      "created_at": "2026-05-23 00:10"
-    },
-    {
       "id": 68985,
       "customer_code": "k026-aamirf",
       "full_name": "aamirf",
@@ -1000,6 +981,15 @@
   ],
   "activityLogs": [
     {
+      "id": 46,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "customer_delete",
+      "description": "Deleted subscriber: aqib javed (k026-aamir1)",
+      "created_at": "9/6/2026, 10:17:44 PM"
+    },
+    {
       "id": 45,
       "user_id": 1,
       "user_name": "Muhammad%20Irfan",
@@ -1424,5 +1414,17 @@
       }
     }
   ],
-  "productSales": []
+  "productSales": [],
+  "company_settings": {
+    "isp_name": "Khan Telecom & Fiber Systems",
+    "support_phone": "+92 300 1234567",
+    "isp_address": "Sector F-11, Main Fiber Hub, Lahore",
+    "currency_symbol": "Rs",
+    "billing_cycle_day": 1,
+    "auto_suspend_expired": true,
+    "auto_sms_reminders": true,
+    "nas_primary_ip": "192.168.10.1",
+    "nas_api_port": 8728,
+    "nas_secret": "khantelecom@123"
+  }
 }
