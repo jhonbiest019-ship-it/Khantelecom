@@ -1616,15 +1616,28 @@
 
             $(document).on('click', '#btn-reset-demo-data', function(e) {
                 e.preventDefault();
-                if (confirm('⚠️ WARNING: This will reset all local subscribers, invoices, products, and packages to system defaults. Continue?')) {
+                if (confirm('⚠️ PERMANENT WIPE WARNING: This will completely ERASE and REMOVE ALL ERP DATA (Subscribers, Invoices, Products, Packages, Activity Logs) and reset database to 0. Are you 100% sure you want to wipe all data?')) {
                     localStorage.removeItem('kt_storage_customers');
                     localStorage.removeItem('kt_storage_packages');
                     localStorage.removeItem('kt_storage_products');
                     localStorage.removeItem('kt_storage_invoices');
                     localStorage.removeItem('kt_storage_staff');
                     localStorage.removeItem('kt_storage_logs');
-                    self.showToast('Database reset to defaults!', 'danger');
-                    self.switchView('dashboard');
+
+                    var user = self.getUserSession();
+                    $.post(ktConfig.ajaxUrl, {
+                        action: 'kt_reset_database',
+                        nonce: ktConfig.nonce,
+                        user_id: user.user_id,
+                        user_name: encodeURIComponent(user.display_name),
+                        user_role: user.role_level
+                    }, function(res) {
+                        self.showToast('🗑️ All ERP database data wiped & cleared to 0!', 'danger');
+                        self.switchView('dashboard');
+                    }).fail(function() {
+                        self.showToast('🗑️ Local ERP database wiped clean!', 'danger');
+                        self.switchView('dashboard');
+                    });
                 }
             });
 
@@ -2568,7 +2581,7 @@
                                 📤 Restore Database JSON
                                 <input type="file" id="restore-db-json-input" accept=".json" style="display:none;">
                             </label>
-                            <button id="btn-reset-demo-data" class="btn btn-outline-danger">⚠️ Reset Database to Defaults</button>
+                            <button id="btn-reset-demo-data" class="btn btn-outline-danger">🗑️ Completely Reset & Wipe All ERP Data (Clear to 0)</button>
                         </div>
                     </div>
                 </div>

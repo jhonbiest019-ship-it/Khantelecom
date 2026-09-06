@@ -2103,6 +2103,15 @@
   ],
   "activityLogs": [
     {
+      "id": 51,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "update_isp_settings",
+      "description": "Updated System ISP Settings (Khan Telecom & Fiber Systems).",
+      "created_at": "9/6/2026, 10:52:55 PM"
+    },
+    {
       "id": 50,
       "user_id": 1,
       "user_name": "Muhammad%20Irfan",
@@ -2576,7 +2585,7 @@
   "company_settings": {
     "isp_name": "Khan Telecom & Fiber Systems",
     "support_phone": "+92 300 1234567",
-    "isp_address": "Sector F-11, Main Fiber Hub, Lahore",
+    "isp_address": "Akbar Plaza,Dhoke Mustaqeem,Rawalpindi",
     "currency_symbol": "Rs",
     "billing_cycle_day": 1,
     "auto_suspend_expired": true,

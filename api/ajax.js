@@ -934,6 +934,27 @@ function processRequest(data, res) {
         });
 
         res.end(JSON.stringify({ success: true, data: { message: 'Duplicates merged and saved successfully!' } }));
+    } else if (action === 'kt_reset_database') {
+        customers.length = 0;
+        invoices.length = 0;
+        products.length = 0;
+        packages.length = 0;
+        hardwareSales.length = 0;
+        activityLogs.length = 0;
+
+        activityLogs.push({
+            id: 1,
+            user_id: data.user_id || 1,
+            user_name: data.user_name || 'Super Admin',
+            role_level: data.user_role || 'super_admin',
+            action_type: 'reset_database',
+            description: `Completely reset & wiped all ERP database records to 0.`,
+            created_at: new Date().toLocaleString()
+        });
+
+        saveDb();
+
+        res.end(JSON.stringify({ success: true, data: { message: 'All ERP database data wiped and reset to 0.' } }));
     } else {
         res.end(JSON.stringify({ success: false, data: { message: 'Unknown endpoint' } }));
     }
