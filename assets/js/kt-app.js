@@ -1658,6 +1658,21 @@
                     self.showToast('⚙️ System ISP Settings saved locally!', 'success');
                 });
             });
+
+            $(document).on('click', '#btn-detect-duplicates', function(e) {
+                e.preventDefault();
+                self.detectDuplicateSubscribers();
+            });
+
+            $(document).on('change', '#chk-select-all-duplicates', function() {
+                var isChecked = $(this).is(':checked');
+                $('.chk-duplicate-group').prop('checked', isChecked);
+            });
+
+            $(document).on('click', '#btn-execute-merge-duplicates', function(e) {
+                e.preventDefault();
+                self.executeMergeDuplicates();
+            });
         },
 
         switchView: function(viewName, targetFilter) {
@@ -2547,6 +2562,7 @@
                         </p>
 
                         <div style="display:flex; flex-direction:column; gap:12px;">
+                            <button id="btn-detect-duplicates" class="btn btn-warning" style="font-weight:600;">🔁 Double Entry / Clean Duplicates</button>
                             <button id="btn-export-db-json" class="btn btn-secondary">📥 Export Full Database JSON</button>
                             <label class="btn btn-secondary" style="margin:0; text-align:center; cursor:pointer;">
                                 📤 Restore Database JSON
@@ -2745,6 +2761,182 @@
             $('#btn-whatsapp-send').attr('href', waLink);
             $('#kt-modal-backdrop').show();
             $('#kt-receipt-modal').css('display', 'flex');
+        },
+
+        /* ==================== 9. DOUBLE ENTRY DUPLICATE DETECTION & CLEAN MERGE ==================== */
+        detectDuplicateSubscribers: function() {
+            var self = this;
+            this.fetchCustomers(function(customers) {
+                var groupsMap = {};
+
+                customers.forEach(function(c) {
+                    var codeKey = (c.customer_code || '').trim().toLowerCase();
+                    var phoneKey = (c.phone_number || '').replace(/[^0-9]/g, '');
+                    var cnicKey = (c.cnic_id || '').replace(/[^0-9]/g, '');
+                    var nameAreaKey = ((c.full_name || '').trim() + '_' + (c.area_sector || c.address || '').trim()).toLowerCase();
+
+                    var keyToUse = null;
+                    var criteriaLabel = '';
+
+                    if (codeKey && codeKey.length > 1) {
+                        keyToUse = 'code_' + codeKey;
+                        criteriaLabel = 'Subscriber Account Code: ' + c.customer_code;
+                    } else if (phoneKey && phoneKey.length >= 7) {
+                        keyToUse = 'phone_' + phoneKey;
+                        criteriaLabel = 'WhatsApp / Phone Number: ' + c.phone_number;
+                    } else if (cnicKey && cnicKey.length >= 10) {
+                        keyToUse = 'cnic_' + cnicKey;
+                        criteriaLabel = 'CNIC Identity ID: ' + c.cnic_id;
+                    } else if (nameAreaKey && nameAreaKey.length > 5) {
+                        keyToUse = 'name_' + nameAreaKey;
+                        criteriaLabel = 'Subscriber Name & Sector: ' + c.full_name + ' (' + (c.area_sector || 'General') + ')';
+                    }
+
+                    if (keyToUse) {
+                        if (!groupsMap[keyToUse]) {
+                            groupsMap[keyToUse] = {
+                                criteria: criteriaLabel,
+                                items: []
+                            };
+                        }
+                        if (!groupsMap[keyToUse].items.some(function(item) { return item.id === c.id; })) {
+                            groupsMap[keyToUse].items.push(c);
+                        }
+                    }
+                });
+
+                var duplicateGroups = [];
+                Object.keys(groupsMap).forEach(function(k) {
+                    if (groupsMap[k].items.length > 1) {
+                        var items = groupsMap[k].items;
+                        items.sort(function(a, b) {
+                            var aScore = (self.isSubscriberActive(a) ? 100 : 0) + (a.cnic_id ? 10 : 0) + (a.assigned_ip_ipoe ? 10 : 0) + (parseInt(a.id) || 0);
+                            var bScore = (self.isSubscriberActive(b) ? 100 : 0) + (b.cnic_id ? 10 : 0) + (b.assigned_ip_ipoe ? 10 : 0) + (parseInt(b.id) || 0);
+                            return bScore - aScore;
+                        });
+
+                        duplicateGroups.push({
+                            criteria: groupsMap[k].criteria,
+                            primary: items[0],
+                            duplicates: items.slice(1)
+                        });
+                    }
+                });
+
+                self.detectedDuplicateGroups = duplicateGroups;
+                self.showDuplicatesModal(duplicateGroups);
+            });
+        },
+
+        showDuplicatesModal: function(groups) {
+            var tbody = $('#duplicates-table-body');
+            tbody.empty();
+
+            if (!groups || groups.length === 0) {
+                $('#duplicates-scan-status').html('✅ <strong>Great news! Zero duplicate / double entry subscribers found.</strong> Your ERP database is 100% clean!');
+                tbody.html('<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-muted);">🎉 Zero duplicate subscribers detected! Everything is clean.</td></tr>');
+                $('#btn-execute-merge-duplicates').prop('disabled', true).css('opacity', '0.5');
+            } else {
+                $('#duplicates-scan-status').html('⚠️ Found <strong>' + groups.length + ' Double Entry Subscriber Groups</strong>. Review primary vs duplicate accounts below and click Replace & Merge.');
+                $('#btn-execute-merge-duplicates').prop('disabled', false).css('opacity', '1');
+
+                groups.forEach(function(g, idx) {
+                    var primary = g.primary;
+                    var dupNames = g.duplicates.map(function(d) {
+                        return '<div style="margin-bottom:4px;"><span class="badge badge-suspended">🔴 Duplicate</span> <strong>' + d.full_name + '</strong> (ID: ' + (d.customer_code || d.id) + ' | Phone: ' + (d.phone_number || 'N/A') + ')</div>';
+                    }).join('');
+
+                    var rowHtml = '<tr>' +
+                        '<td><input type="checkbox" class="chk-duplicate-group" data-group-index="' + idx + '" checked></td>' +
+                        '<td><span class="badge badge-warning" style="font-size:11px;">' + g.criteria + '</span></td>' +
+                        '<td>' +
+                            '<span class="badge badge-active">🟢 Primary (Keep)</span> <strong>' + primary.full_name + '</strong><br>' +
+                            '<small style="color:var(--text-muted);">Code: <code>' + (primary.customer_code || primary.id) + '</code> | Phone: ' + primary.phone_number + ' | Sector: ' + (primary.area_sector || 'N/A') + '</small>' +
+                        '</td>' +
+                        '<td>' + dupNames + '</td>' +
+                    '</tr>';
+                    tbody.append(rowHtml);
+                });
+            }
+
+            $('#kt-modal-backdrop').show();
+            $('#kt-duplicates-modal').css('display', 'flex');
+        },
+
+        executeMergeDuplicates: function() {
+            var self = this;
+            var groups = this.detectedDuplicateGroups || [];
+            var selectedIndices = [];
+
+            $('.chk-duplicate-group:checked').each(function() {
+                selectedIndices.push(parseInt($(this).data('group-index')));
+            });
+
+            if (selectedIndices.length === 0) {
+                this.showToast('Please select at least one duplicate group to merge.', 'warning');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to merge ' + selectedIndices.length + ' duplicate subscriber group(s)? Duplicate entries will be removed and their payment history will be merged into primary accounts.')) {
+                return;
+            }
+
+            this.fetchCustomers(function(customers) {
+                self.fetchInvoices(function(invoices) {
+                    var duplicateCustomerIdsToRemove = [];
+                    var totalMergedCount = 0;
+
+                    selectedIndices.forEach(function(idx) {
+                        var g = groups[idx];
+                        if (g) {
+                            var primaryId = g.primary.id;
+                            var primaryCode = g.primary.customer_code || g.primary.id;
+
+                            g.duplicates.forEach(function(dup) {
+                                duplicateCustomerIdsToRemove.push(dup.id);
+                                totalMergedCount++;
+
+                                invoices.forEach(function(inv) {
+                                    if (inv.customer_id === dup.id || inv.customer_code === dup.customer_code) {
+                                        inv.customer_id = primaryId;
+                                        inv.customer_code = primaryCode;
+                                        inv.full_name = g.primary.full_name;
+                                    }
+                                });
+                            });
+                        }
+                    });
+
+                    var cleanedCustomers = customers.filter(function(c) {
+                        return !duplicateCustomerIdsToRemove.includes(c.id);
+                    });
+
+                    localStorage.setItem('kt_storage_customers', JSON.stringify(cleanedCustomers));
+                    localStorage.setItem('kt_storage_invoices', JSON.stringify(invoices));
+
+                    var user = self.getUserSession();
+                    $.post(ktConfig.ajaxUrl, {
+                        action: 'kt_merge_duplicates',
+                        nonce: ktConfig.nonce,
+                        user_id: user.user_id,
+                        user_name: encodeURIComponent(user.display_name),
+                        user_role: user.role_level,
+                        customers: JSON.stringify(cleanedCustomers),
+                        invoices: JSON.stringify(invoices)
+                    }, function(res) {
+                        $('#kt-duplicates-modal, #kt-modal-backdrop').hide();
+                        self.showToast('⚡ Successfully merged ' + totalMergedCount + ' double entry subscriber records!', 'success');
+                        self.renderCustomersTable(cleanedCustomers);
+                        if (self.currentView === 'settings') {
+                            self.loadSettingsView();
+                        }
+                    }).fail(function() {
+                        $('#kt-duplicates-modal, #kt-modal-backdrop').hide();
+                        self.showToast('⚡ Duplicate entries merged locally!', 'success');
+                        self.renderCustomersTable(cleanedCustomers);
+                    });
+                });
+            });
         },
     };
 

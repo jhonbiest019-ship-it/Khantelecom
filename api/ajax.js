@@ -900,6 +900,40 @@ function processRequest(data, res) {
         } else {
             res.end(JSON.stringify({ success: false, data: { message: 'Product not found.' } }));
         }
+    } else if (action === 'kt_merge_duplicates') {
+        let updatedCustomers = [];
+        let updatedInvoices = [];
+        try {
+            if (data.customers) {
+                updatedCustomers = typeof data.customers === 'string' ? JSON.parse(data.customers) : data.customers;
+            }
+            if (data.invoices) {
+                updatedInvoices = typeof data.invoices === 'string' ? JSON.parse(data.invoices) : data.invoices;
+            }
+        } catch(e) {}
+
+        if (Array.isArray(updatedCustomers) && updatedCustomers.length > 0) {
+            customers.length = 0;
+            customers.push(...updatedCustomers);
+        }
+        if (Array.isArray(updatedInvoices) && updatedInvoices.length > 0) {
+            invoices.length = 0;
+            invoices.push(...updatedInvoices);
+        }
+
+        saveDb();
+
+        activityLogs.unshift({
+            id: activityLogs.length + 1,
+            user_id: data.user_id || 1,
+            user_name: data.user_name || 'Super Admin',
+            role_level: data.user_role || 'super_admin',
+            action_type: 'merge_duplicates',
+            description: `Merged duplicate subscriber entries and consolidated ledger history cleanly.`,
+            created_at: new Date().toLocaleString()
+        });
+
+        res.end(JSON.stringify({ success: true, data: { message: 'Duplicates merged and saved successfully!' } }));
     } else {
         res.end(JSON.stringify({ success: false, data: { message: 'Unknown endpoint' } }));
     }
