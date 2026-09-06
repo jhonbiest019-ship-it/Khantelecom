@@ -1514,6 +1514,37 @@
                     self.switchView('dashboard');
                 }
             });
+
+            $(document).on('click', '#btn-save-isp-settings', function(e) {
+                e.preventDefault();
+                var settingsObj = {
+                    isp_name: $('#setting-isp-name').val() || 'Khan Telecom & Fiber Systems',
+                    support_phone: $('#setting-support-phone').val() || '+92 300 1234567',
+                    isp_address: $('#setting-isp-address').val() || 'Sector F-11, Main Fiber Hub, Lahore',
+                    nas_primary_ip: $('#setting-nas-ip').val() || '192.168.10.1',
+                    nas_api_port: $('#setting-nas-port').val() || '8728',
+                    auto_suspend_expired: $('#setting-auto-suspend').is(':checked'),
+                    auto_sms_reminders: $('#setting-auto-wa').is(':checked')
+                };
+
+                localStorage.setItem('kt_isp_settings', JSON.stringify(settingsObj));
+                if (settingsObj.isp_name) {
+                    $('.logo-text h2').text(settingsObj.isp_name.toUpperCase());
+                }
+
+                var user = self.getUserSession();
+                $.post(ktConfig.ajaxUrl, Object.assign({
+                    action: 'kt_save_isp_settings',
+                    nonce: ktConfig.nonce,
+                    current_user_id: user.user_id,
+                    current_user_name: encodeURIComponent(user.display_name),
+                    current_user_role: user.role_level
+                }, settingsObj), function(res) {
+                    self.showToast('⚙️ System ISP Settings saved & locked live in ERP!', 'success');
+                }).fail(function() {
+                    self.showToast('⚙️ System ISP Settings saved locally!', 'success');
+                });
+            });
         },
 
         switchView: function(viewName, targetFilter) {
@@ -2348,7 +2379,7 @@
                 <div class="section-header">
                     <div>
                         <h2 class="section-title">System Settings & Bulk Subscriber Import</h2>
-                        <p style="font-size:12px; color: var(--text-muted);">Upload your Member Sheet (CSV / Excel / JSON) to import subscribers in bulk, or manage database backups.</p>
+                        <p style="font-size:12px; color: var(--text-muted);">Upload your Member Sheet (CSV / Excel / JSON) to import subscribers in bulk, or manage database backups and ISP configuration.</p>
                     </div>
                 </div>
 
@@ -2396,6 +2427,52 @@
                     </div>
                 </div>
 
+                <!-- ISP Profile & Automation Settings Card -->
+                <div class="card" style="padding:20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius:12px; margin-bottom:24px;">
+                    <h3 style="margin-top:0; font-size:18px; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                        <span>⚙️</span> ISP System Profile & Billing Automation
+                    </h3>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                        Configure telecom company name, helpline contact numbers, NAS router IP, and automated subscriber expiry locks.
+                    </p>
+
+                    <form id="form-isp-settings">
+                        <div class="grid-2" style="gap:16px;">
+                            <div class="form-group">
+                                <label class="form-label">ISP Telecom Brand Name</label>
+                                <input type="text" id="setting-isp-name" class="form-control" value="Khan Telecom & Fiber Systems" placeholder="e.g. Khan Telecom">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Support Helpline Phone / WhatsApp</label>
+                                <input type="text" id="setting-support-phone" class="form-control" value="+92 300 1234567" placeholder="+92 300 1234567">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Head Office Address</label>
+                                <input type="text" id="setting-isp-address" class="form-control" value="Sector F-11, Main Fiber Hub, Lahore" placeholder="Address">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Primary NAS Router IP</label>
+                                <input type="text" id="setting-nas-ip" class="form-control" value="192.168.10.1" placeholder="192.168.10.1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">MikroTik Router API Port</label>
+                                <input type="number" id="setting-nas-port" class="form-control" value="8728" placeholder="8728">
+                            </div>
+                            <div class="form-group" style="display:flex; flex-direction:column; justify-content:center; gap:8px;">
+                                <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text-main);">
+                                    <input type="checkbox" id="setting-auto-suspend" checked> 🔒 Auto-Suspend Expired Subscribers
+                                </label>
+                                <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text-main);">
+                                    <input type="checkbox" id="setting-auto-wa" checked> 📱 Send Automatic WhatsApp Billing Reminders
+                                </label>
+                            </div>
+                        </div>
+                        <div style="margin-top:16px; text-align:right;">
+                            <button type="button" id="btn-save-isp-settings" class="btn btn-primary btn-lg">💾 Save & Lock ISP System Settings</button>
+                        </div>
+                    </form>
+                </div>
+
                 <!-- Parsed Preview Sheet Table Section -->
                 <div id="import-preview-section" style="display:none; margin-top:20px;">
                     <div class="section-header">
@@ -2433,6 +2510,22 @@
 
             $('#kt-view-loader').hide();
             $('#kt-view-content').html(html).show();
+
+            var saved = {};
+            try { saved = JSON.parse(localStorage.getItem('kt_isp_settings') || '{}'); } catch(e) {}
+            
+            $.post(ktConfig.ajaxUrl, { action: 'kt_get_isp_settings', nonce: ktConfig.nonce }, function(res) {
+                if (res && res.success && res.data && res.data.settings) {
+                    var s = res.data.settings;
+                    $('#setting-isp-name').val(s.isp_name || saved.isp_name || 'Khan Telecom & Fiber Systems');
+                    $('#setting-support-phone').val(s.support_phone || saved.support_phone || '+92 300 1234567');
+                    $('#setting-isp-address').val(s.isp_address || saved.isp_address || 'Sector F-11, Main Fiber Hub, Lahore');
+                    $('#setting-nas-ip').val(s.nas_primary_ip || saved.nas_primary_ip || '192.168.10.1');
+                    $('#setting-nas-port').val(s.nas_api_port || saved.nas_api_port || 8728);
+                    $('#setting-auto-suspend').prop('checked', s.auto_suspend_expired !== false);
+                    $('#setting-auto-wa').prop('checked', s.auto_sms_reminders !== false);
+                }
+            });
         },
 
         

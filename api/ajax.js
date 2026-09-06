@@ -39,6 +39,18 @@ let matrix = [
 ];
 
 let productSales = [];
+let company_settings = {
+    isp_name: "Khan Telecom & Fiber Systems",
+    support_phone: "+92 300 1234567",
+    isp_address: "Sector F-11, Main Fiber Hub, Lahore",
+    currency_symbol: "Rs",
+    billing_cycle_day: 1,
+    auto_suspend_expired: true,
+    auto_sms_reminders: true,
+    nas_primary_ip: "192.168.10.1",
+    nas_api_port: 8728,
+    nas_secret: "khantelecom@123"
+};
 
 const TMP_DATA_FILE = '/tmp/data.json';
 
@@ -60,6 +72,7 @@ function loadData() {
             if (Array.isArray(store.activityLogs)) activityLogs = store.activityLogs;
             if (Array.isArray(store.matrix) && store.matrix.length > 0) matrix = store.matrix;
             if (Array.isArray(store.productSales)) productSales = store.productSales;
+            if (store.company_settings) company_settings = store.company_settings;
         }
     } catch (e) {
         console.error("Error loading persisted data:", e);
@@ -74,7 +87,8 @@ function saveData() {
         products,
         activityLogs,
         matrix,
-        productSales
+        productSales,
+        company_settings
     };
     try {
         fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), 'utf8');
@@ -406,6 +420,43 @@ function processRequest(data, res) {
                 }
             }));
         }
+    } else if (action === 'kt_get_isp_settings') {
+        res.end(JSON.stringify({
+            success: true,
+            data: { settings: company_settings }
+        }));
+    } else if (action === 'kt_save_isp_settings') {
+        company_settings = {
+            isp_name: data.isp_name || company_settings.isp_name,
+            support_phone: data.support_phone || company_settings.support_phone,
+            isp_address: data.isp_address || company_settings.isp_address,
+            currency_symbol: data.currency_symbol || company_settings.currency_symbol,
+            billing_cycle_day: parseInt(data.billing_cycle_day) || 1,
+            auto_suspend_expired: data.auto_suspend_expired === 'true' || data.auto_suspend_expired === true,
+            auto_sms_reminders: data.auto_sms_reminders === 'true' || data.auto_sms_reminders === true,
+            nas_primary_ip: data.nas_primary_ip || company_settings.nas_primary_ip,
+            nas_api_port: parseInt(data.nas_api_port) || 8728,
+            nas_secret: data.nas_secret || company_settings.nas_secret
+        };
+
+        activityLogs.unshift({
+            id: activityLogs.length + 1,
+            user_id: activeUserId,
+            user_name: activeUser,
+            role_level: activeRole,
+            action_type: 'update_isp_settings',
+            description: `Updated System ISP Settings (${company_settings.isp_name}).`,
+            created_at: new Date().toLocaleString()
+        });
+
+        saveData();
+        res.end(JSON.stringify({
+            success: true,
+            data: {
+                message: '⚙️ ISP System Settings saved and updated successfully!',
+                settings: company_settings
+            }
+        }));
     } else if (action === 'kt_get_packages') {
         const canEdit = activeRole === 'super_admin' || activeRole === 'admin';
         res.end(JSON.stringify({
