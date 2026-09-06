@@ -939,7 +939,6 @@ function processRequest(data, res) {
         invoices.length = 0;
         products.length = 0;
         packages.length = 0;
-        hardwareSales.length = 0;
         activityLogs.length = 0;
 
         activityLogs.push({
