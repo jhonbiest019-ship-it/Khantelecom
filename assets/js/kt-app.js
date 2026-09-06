@@ -1188,7 +1188,9 @@
             // --- SETTINGS & MEMBER SHEET IMPORTER HANDLERS ---
             var parsedSubscribers = [];
 
-            $(document).on('click', '#btn-browse-file, #drop-zone-container', function() {
+            $(document).on('click', '#btn-browse-file, #drop-zone-container', function(e) {
+                e.preventDefault();
+                $('#member-sheet-input').val('');
                 $('#member-sheet-input').click();
             });
 
@@ -1349,8 +1351,13 @@
                     });
 
                     $('#preview-table-body').html(rowsHtml);
-                    $('#import-preview-section').show();
-                    self.showToast('🎉 Parsed ' + records.length + ' subscriber rows from uploaded sheet!', 'success');
+                    $('#import-preview-section').slideDown(300);
+                    self.showToast('🎉 File "' + (file.name || 'Member Sheet') + '" selected & parsed! ' + records.length + ' subscriber rows ready to upload.', 'success');
+                    if ($('#import-preview-section').length) {
+                        $('html, body').animate({
+                            scrollTop: $('#import-preview-section').offset().top - 80
+                        }, 400);
+                    }
                 };
 
                 if (isJson) {
