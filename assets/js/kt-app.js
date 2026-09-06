@@ -52,8 +52,11 @@
         /* ==================== LOCAL STORAGE HELPERS ==================== */
         getStoredCustomers: function() {
             var raw = localStorage.getItem('kt_storage_customers');
-            if (raw) {
-                try { return JSON.parse(raw); } catch(e) {}
+            if (raw !== null) {
+                try { return JSON.parse(raw); } catch(e) { return []; }
+            }
+            if (localStorage.getItem('kt_is_reset') === 'true') {
+                return [];
             }
             return [
                 { id: 68982, customer_code: 'k026-hamza', full_name: 'hamza', phone_number: '03118870806', cnic_id: '3740585654350', email: 'k026ha3ab3@site.com', area_sector: 'Rawalpindi', address: 'mohallah dhoke mustaqeem Peshawar Road RWP', package_id: 1, package_name: 'Premier-2', password: '5050', nas: 'K030-BRAS2', conn_status: 'Online', status: 'active', monthly_due: 1275, expiry_date: '05 Oct 2026 11:59:00', created_at: '2026-05-23 00:10' },
@@ -111,8 +114,11 @@
 
         getStoredPackages: function() {
             var raw = localStorage.getItem('kt_storage_packages');
-            if (raw) {
-                try { return JSON.parse(raw); } catch(e) {}
+            if (raw !== null) {
+                try { return JSON.parse(raw); } catch(e) { return []; }
+            }
+            if (localStorage.getItem('kt_is_reset') === 'true') {
+                return [];
             }
             return [
                 { id: 1, package_name: '10 Mbps Fiber Basic', speed_mbps: 10, cost_price: 600, sale_price: 1200, margin: 600, status: 'active' },
@@ -127,8 +133,11 @@
 
         getStoredProducts: function() {
             var raw = localStorage.getItem('kt_storage_products');
-            if (raw) {
-                try { return JSON.parse(raw); } catch(e) {}
+            if (raw !== null) {
+                try { return JSON.parse(raw); } catch(e) { return []; }
+            }
+            if (localStorage.getItem('kt_is_reset') === 'true') {
+                return [];
             }
             return [
                 { id: 1, product_name: 'TP-Link Dual Band Gigabit Router C6', category: 'Routers', unit: 'pcs', cost_price: 4500, sale_price: 6500, margin: 2000, stock_qty: 15 },
@@ -142,8 +151,11 @@
 
         getStoredInvoices: function() {
             var raw = localStorage.getItem('kt_storage_invoices');
-            if (raw) {
-                try { return JSON.parse(raw); } catch(e) {}
+            if (raw !== null) {
+                try { return JSON.parse(raw); } catch(e) { return []; }
+            }
+            if (localStorage.getItem('kt_is_reset') === 'true') {
+                return [];
             }
             return [
                 { id: 1, invoice_number: 'INV-2026-001', customer_id: 1, customer_code: 'KT-1001', full_name: 'Muhammad Ali', phone_number: '03001234567', area_sector: 'Sector F-11', billing_month: 'September 2026', amount_due: 1200, amount_paid: 1200, discount: 0, payment_status: 'paid', payment_method: 'cash', collector_name: 'Saif Telecom', paid_at: new Date().toLocaleString() }
@@ -155,8 +167,8 @@
 
         getStoredStaff: function() {
             var raw = localStorage.getItem('kt_storage_staff');
-            if (raw) {
-                try { return JSON.parse(raw); } catch(e) {}
+            if (raw !== null) {
+                try { return JSON.parse(raw); } catch(e) { return []; }
             }
             return [
                 { user_id: 1, user_login: 'saif', display_name: 'Saif Telecom', user_email: 'saif@khantelecom.com', permissions: { role_level: 'super_admin', can_view_financials: 1, can_create_invoice: 1, can_collect_payment: 1, can_edit_packages: 1, can_manage_customers: 1, can_export_reports: 1, approval_status: 'approved' } }
@@ -168,12 +180,18 @@
 
         getStoredLogs: function() {
             var raw = localStorage.getItem('kt_storage_logs');
-            if (raw) {
-                try { return JSON.parse(raw); } catch(e) {}
+            if (raw !== null) {
+                try { return JSON.parse(raw); } catch(e) { return []; }
+            }
+            if (localStorage.getItem('kt_is_reset') === 'true') {
+                return [];
             }
             return [
                 { id: 1, user_id: 1, user_name: 'Saif Telecom', role_level: 'super_admin', action_type: 'system_init', description: 'Khan Telecom ERP Engine initialized successfully.', created_at: new Date().toLocaleString() }
             ];
+        },
+        setStoredLogs: function(data) {
+            try { localStorage.setItem('kt_storage_logs', JSON.stringify(data)); } catch(e) {}
         },
         setStoredLogs: function(data) {
             try { localStorage.setItem('kt_storage_logs', JSON.stringify(data)); } catch(e) {}
@@ -1617,12 +1635,12 @@
             $(document).on('click', '#btn-reset-demo-data', function(e) {
                 e.preventDefault();
                 if (confirm('⚠️ PERMANENT WIPE WARNING: This will completely ERASE and REMOVE ALL ERP DATA (Subscribers, Invoices, Products, Packages, Activity Logs) and reset database to 0. Are you 100% sure you want to wipe all data?')) {
-                    localStorage.removeItem('kt_storage_customers');
-                    localStorage.removeItem('kt_storage_packages');
-                    localStorage.removeItem('kt_storage_products');
-                    localStorage.removeItem('kt_storage_invoices');
-                    localStorage.removeItem('kt_storage_staff');
-                    localStorage.removeItem('kt_storage_logs');
+                    localStorage.setItem('kt_is_reset', 'true');
+                    localStorage.setItem('kt_storage_customers', '[]');
+                    localStorage.setItem('kt_storage_packages', '[]');
+                    localStorage.setItem('kt_storage_products', '[]');
+                    localStorage.setItem('kt_storage_invoices', '[]');
+                    localStorage.setItem('kt_storage_logs', '[]');
 
                     var user = self.getUserSession();
                     $.post(ktConfig.ajaxUrl, {
@@ -2043,18 +2061,22 @@
                 status: status
             }, function(res) {
                 if (res && res.success && Array.isArray(res.data)) {
-                    res.data.forEach(function(sc) {
-                        var match = localCusts.find(function(lc) { return parseInt(lc.id) === parseInt(sc.id); });
-                        if (!match) {
-                            localCusts.push(sc);
-                        } else {
-                            match.status = sc.status;
-                            match.days_remaining = sc.days_remaining;
-                            match.expiry_date = sc.expiry_date;
-                            match.activated_at = sc.activated_at;
-                            match.package_name = sc.package_name;
-                        }
-                    });
+                    if (localStorage.getItem('kt_is_reset') === 'true' && res.data.length === 0) {
+                        localCusts = [];
+                    } else {
+                        res.data.forEach(function(sc) {
+                            var match = localCusts.find(function(lc) { return parseInt(lc.id) === parseInt(sc.id); });
+                            if (!match) {
+                                localCusts.push(sc);
+                            } else {
+                                match.status = sc.status;
+                                match.days_remaining = sc.days_remaining;
+                                match.expiry_date = sc.expiry_date;
+                                match.activated_at = sc.activated_at;
+                                match.package_name = sc.package_name;
+                            }
+                        });
+                    }
                     self.setStoredCustomers(localCusts);
                     self.renderCustomersTable(localCusts, search, status);
                 }
