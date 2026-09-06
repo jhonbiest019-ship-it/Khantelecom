@@ -207,6 +207,22 @@
       "billing_cycle_day": 1,
       "status": "active",
       "activated_at": "2026-09-05T20:04:18.286Z"
+    },
+    {
+      "id": 6,
+      "customer_code": "KT-1002",
+      "full_name": "TariqMehmood",
+      "phone_number": "03001234567",
+      "cnic_id": "",
+      "area_sector": "SectorF11",
+      "address": "",
+      "package_id": 1,
+      "package_name": "10 Mbps Fiber Starter VIP",
+      "assigned_ip_ipoe": "",
+      "connection_type": "Fiber_FTTH",
+      "billing_cycle_day": 1,
+      "status": "active",
+      "activated_at": "2026-09-06T15:36:16.913Z"
     }
   ],
   "invoices": [],
@@ -223,6 +239,15 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": 19,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "customer_create",
+      "description": "Registered new subscriber: TariqMehmood (KT-1002)",
+      "created_at": "9/6/2026, 8:36:16 PM"
+    },
     {
       "id": 18,
       "user_id": 1,

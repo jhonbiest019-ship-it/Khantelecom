@@ -206,6 +206,60 @@
         },
 
         
+        
+        openCreateSubscriberModal: function() {
+            try {
+                this.populateCustomerAndPackageSelects();
+                if ($('#kt-customer-form').length) $('#kt-customer-form')[0].reset();
+                $('#kt-customer-form input[name="id"]').val(0);
+                
+                var custs = this.getStoredCustomers();
+                var nextCode = 1001;
+                if (custs && custs.length > 0) {
+                    var codes = custs.map(function(c) {
+                        var m = (c.customer_code || '').match(/\d+/);
+                        return m ? parseInt(m[0]) : 0;
+                    });
+                    var maxC = Math.max.apply(null, codes);
+                    if (maxC && maxC >= 1000) nextCode = maxC + 1;
+                }
+                $('#kt-customer-form input[name="customer_code"]').val('KT-' + nextCode);
+                $('#customer-modal-title').text('Register New Subscriber');
+                $('#btn-delete-customer-modal').hide();
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-customer-modal').show().css('display', 'flex');
+            } catch(e) {
+                console.error("Error opening subscriber modal:", e);
+            }
+        },
+
+        openEditSubscriberModal: function(elem) {
+            try {
+                this.populateCustomerAndPackageSelects();
+                var data = $(elem).data('json');
+                if (typeof data === 'string') { try { data = JSON.parse(data); } catch(e) {} }
+                $('#kt-customer-form input[name="id"]').val(data.id);
+                $('#kt-customer-form input[name="customer_code"]').val(data.customer_code);
+                $('#kt-customer-form input[name="full_name"]').val(data.full_name);
+                $('#kt-customer-form input[name="phone_number"]').val(data.phone_number);
+                $('#kt-customer-form input[name="cnic_id"]').val(data.cnic_id);
+                $('#kt-customer-form input[name="area_sector"]').val(data.area_sector);
+                $('#kt-customer-form textarea[name="address"]').val(data.address);
+                $('#kt-customer-form select[name="package_id"]').val(data.package_id);
+                $('#kt-customer-form input[name="assigned_ip_ipoe"]').val(data.assigned_ip_ipoe);
+                $('#kt-customer-form select[name="connection_type"]').val(data.connection_type);
+                $('#kt-customer-form input[name="billing_cycle_day"]').val(data.billing_cycle_day);
+                $('#kt-customer-form select[name="status"]').val(data.status);
+
+                $('#customer-modal-title').text('Edit Subscriber Profile (' + data.customer_code + ')');
+                $('#btn-delete-customer-modal').show();
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-customer-modal').show().css('display', 'flex');
+            } catch(e) {
+                console.error("Error editing subscriber modal:", e);
+            }
+        },
+
         openCreatePackageModal: function() {
             try {
                 if ($('#kt-package-form').length) $('#kt-package-form')[0].reset();
@@ -410,15 +464,9 @@
             });
 
             // --- 2. CUSTOMERS MODAL & FORMS ---
-            $(document).on('click', '#btn-add-customer', function() {
-                self.populateCustomerAndPackageSelects();
-                $('#kt-customer-form')[0].reset();
-                $('#kt-customer-form input[name="id"]').val(0);
-                $('#kt-customer-form input[name="customer_code"]').val('KT-' + Math.floor(1001 + Math.random() * 9000));
-                $('#customer-modal-title').text('Register New Subscriber');
-                $('#btn-delete-customer-modal').hide();
-                $('#kt-modal-backdrop').show();
-                $('#kt-customer-modal').css('display', 'flex');
+            $(document).on('click', '#btn-add-customer', function(e) {
+                e.preventDefault();
+                self.openCreateSubscriberModal();
             });
 
             $(document).on('click', '.btn-edit-customer', function() {
@@ -794,7 +842,7 @@
                         <h2 class="section-title">Subscribers Directory</h2>
                         <p style="font-size:12px; color: var(--text-muted);">Manage 30-Day subscriber package cycles, assigned IPs, and active/inactive status.</p>
                     </div>
-                    <button id="btn-add-customer" class="btn btn-primary">➕ Register New Subscriber</button>
+                    <button id="btn-add-customer" onclick="KT_App.openCreateSubscriberModal()" class="btn btn-primary">➕ Register New Subscriber</button>
                 </div>
 
                 <div class="status-tab-bar" style="display:flex; gap:10px; margin-bottom: 16px; flex-wrap:wrap; align-items:center;">
