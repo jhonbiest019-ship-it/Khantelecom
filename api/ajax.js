@@ -921,7 +921,7 @@ function processRequest(data, res) {
             invoices.push(...updatedInvoices);
         }
 
-        saveDb();
+        saveData();
 
         activityLogs.unshift({
             id: activityLogs.length + 1,
@@ -951,7 +951,7 @@ function processRequest(data, res) {
             created_at: new Date().toLocaleString()
         });
 
-        saveDb();
+        saveData();
 
         res.end(JSON.stringify({ success: true, data: { message: 'All ERP database data wiped and reset to 0.' } }));
     } else {
