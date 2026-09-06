@@ -1212,62 +1212,117 @@
                 }
             });
 
-            function parseMemberSheetFile(file) {
-                var reader = new FileReader();
-                reader.onload = function(evt) {
-                    var content = evt.target.result;
-                    var records = [];
-
-                    if (file.name.endsWith('.json')) {
-                        try {
-                            var rawArr = JSON.parse(content);
-                            if (Array.isArray(rawArr)) records = rawArr;
-                            else if (rawArr.customers && Array.isArray(rawArr.customers)) records = rawArr.customers;
-                        } catch(err) {
-                            alert('Invalid JSON file format.');
-                            return;
-                        }
-                    } else {
-                        var lines = content.split(/\r\n|\n/);
-                        if (lines.length < 2) {
-                            alert('CSV sheet must contain a header row and at least 1 data row.');
-                            return;
-                        }
-
-                        var headers = lines[0].split(',').map(function(h) { return h.trim().replace(/^["']|["']$/g, '').toLowerCase(); });
-                        
-                        for (var i = 1; i < lines.length; i++) {
-                            var line = lines[i].trim();
-                            if (!line) continue;
-                            var cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(function(c) { return c.trim().replace(/^["']|["']$/g, ''); });
-
-                            var obj = {};
-                            headers.forEach(function(h, idx) {
-                                var val = cols[idx] || '';
-                                if (h.includes('code') || h.includes('id') || h.includes('account')) obj.customer_code = val;
-                                else if (h.includes('name') || h.includes('subscriber')) obj.full_name = val;
-                                else if (h.includes('phone') || h.includes('mobile') || h.includes('whatsapp')) obj.phone_number = val;
-                                else if (h.includes('cnic')) obj.cnic_id = val;
-                                else if (h.includes('area') || h.includes('sector')) obj.area_sector = val;
-                                else if (h.includes('address')) obj.address = val;
-                                else if (h.includes('package')) obj.package_name = val;
-                                else if (h.includes('ip')) obj.assigned_ip_ipoe = val;
-                                else if (h.includes('status')) obj.status = val.toLowerCase().includes('active') ? 'active' : 'inactive';
-                            });
-
-                            if (obj.full_name) {
-                                if (!obj.customer_code) obj.customer_code = 'KT-' + (1000 + i);
-                                if (!obj.phone_number) obj.phone_number = '03000000000';
-                                if (!obj.area_sector) obj.area_sector = 'General Sector';
-                                if (!obj.package_name) obj.package_name = '10 Mbps Fiber Basic';
-                                if (!obj.status) obj.status = 'active';
-                                records.push(obj);
+            function extractSubscriberFieldsFromRow(row) {
+                function getVal(keywords) {
+                    var keys = Object.keys(row);
+                    for (var k = 0; k < keys.length; k++) {
+                        var keyLower = keys[k].toLowerCase().replace(/[^a-z0-9]/g, '');
+                        for (var w = 0; w < keywords.length; w++) {
+                            var kwLower = keywords[w].toLowerCase().replace(/[^a-z0-9]/g, '');
+                            if (keyLower.includes(kwLower)) {
+                                return String(row[keys[k]]).trim();
                             }
                         }
                     }
+                    return '';
+                }
+
+                var name = getVal(['full name', 'profilename', 'subscribername', 'subscriber', 'name', 'customer']);
+                if (!name) return null;
+
+                var code = getVal(['accountid', 'secret', 'customercode', 'subscribercode', 'code', 'id']);
+                var phone = getVal(['phone', 'whatsapp', 'mobile', 'contact', 'cell']);
+                var cnic = getVal(['cnic', 'identity', 'nic', 'cnicid']);
+                var pkgName = getVal(['packagetier', 'packagename', 'package', 'profile', 'tier', 'plan']);
+                var pass = getVal(['password', 'secretpass', 'pass']);
+                var nas = getVal(['nasserver', 'nas', 'router', 'server', 'assignedip', 'ipoe', 'ip']);
+                var cStat = getVal(['cstatus', 'creditstatus', 'c_status', 'billingstatus', 'paymentstatus']);
+                var rawStatus = getVal(['profilestatus', 'status', 'state', 'accstatus']);
+                var monthlyDue = getVal(['monthlydue', 'monthlycharges', 'due', 'price', 'bill', 'charges', 'amount', 'fee']);
+                var expiry = getVal(['expirationdate', 'expiration', 'expirydate', 'expiry', 'duedate', 'validuntil']);
+                var area = getVal(['areasector', 'sector', 'area', 'zone']);
+                var address = getVal(['address', 'location', 'street', 'house']);
+
+                var status = 'active';
+                if (rawStatus) {
+                    var lowerS = rawStatus.toLowerCase();
+                    if (lowerS.includes('inact') || lowerS.includes('susp') || lowerS.includes('disab') || lowerS.includes('expir') || lowerS.includes('off') || lowerS.includes('🔴')) {
+                        status = 'inactive';
+                    }
+                }
+
+                var dueAmount = 2500;
+                if (monthlyDue) {
+                    var cleanNum = monthlyDue.replace(/[^0-9.]/g, '');
+                    if (cleanNum) dueAmount = parseInt(cleanNum) || 2500;
+                }
+
+                return {
+                    customer_code: code || '',
+                    full_name: name,
+                    phone_number: phone || '03000000000',
+                    cnic_id: cnic || '',
+                    package_name: pkgName || '10 Mbps Fiber Basic',
+                    account_password: pass || '123456',
+                    nas_server: nas || 'NAS-Lahore-01',
+                    assigned_ip_ipoe: (nas && nas.match(/\d+\.\d+\.\d+\.\d+/)) ? nas : '192.168.10.100',
+                    c_status: cStat || 'Paid',
+                    status: status,
+                    monthly_due: dueAmount,
+                    expiry_date: expiry || '2026-10-06',
+                    area_sector: area || 'General Sector',
+                    address: address || area || 'Lahore'
+                };
+            }
+
+            function parseMemberSheetFile(file) {
+                var isJson = file.name.toLowerCase().endsWith('.json');
+                var reader = new FileReader();
+
+                reader.onload = function(evt) {
+                    var records = [];
+                    try {
+                        if (isJson) {
+                            var content = evt.target.result;
+                            var rawArr = JSON.parse(content);
+                            if (Array.isArray(rawArr)) records = rawArr;
+                            else if (rawArr.customers && Array.isArray(rawArr.customers)) records = rawArr.customers;
+                        } else if (typeof XLSX !== 'undefined') {
+                            var data = new Uint8Array(evt.target.result);
+                            var workbook = XLSX.read(data, { type: 'array' });
+                            var sheetName = workbook.SheetNames[0];
+                            var rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
+                            
+                            rawRows.forEach(function(row) {
+                                var obj = extractSubscriberFieldsFromRow(row);
+                                if (obj && obj.full_name) {
+                                    records.push(obj);
+                                }
+                            });
+                        } else {
+                            var textContent = new TextDecoder("utf-8").decode(evt.target.result);
+                            var lines = textContent.split(/\r\n|\n/);
+                            if (lines.length >= 2) {
+                                var headers = lines[0].split(',').map(function(h) { return h.trim().replace(/^["']|["']$/g, ''); });
+                                for (var i = 1; i < lines.length; i++) {
+                                    var line = lines[i].trim();
+                                    if (!line) continue;
+                                    var cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(function(c) { return c.trim().replace(/^["']|["']$/g, ''); });
+                                    var rowObj = {};
+                                    headers.forEach(function(h, idx) { rowObj[h] = cols[idx] || ''; });
+                                    var obj = extractSubscriberFieldsFromRow(rowObj);
+                                    if (obj && obj.full_name) records.push(obj);
+                                }
+                            }
+                        }
+                    } catch(err) {
+                        console.error('File parse error:', err);
+                        alert('Failed to parse member sheet file: ' + err.message);
+                        return;
+                    }
 
                     if (records.length === 0) {
-                        alert('No valid subscriber records found in the uploaded file.');
+                        alert('No valid subscriber records found in the uploaded sheet. Please ensure the sheet has columns for Profile Name, Account ID, Phone, Package, etc.');
                         return;
                     }
 
@@ -1276,24 +1331,33 @@
 
                     var rowsHtml = '';
                     records.forEach(function(r) {
-                        var statusBadge = r.status === 'active' ? '<span class="badge badge-active">🟢 Active</span>' : '<span class="badge badge-suspended">🔴 Inactive</span>';
+                        var statusBadge = (r.status === 'active') ? '<span class="badge badge-active">🟢 Active</span>' : '<span class="badge badge-suspended">🔴 Inactive</span>';
                         rowsHtml += '<tr>' +
                             '<td><strong>' + (r.customer_code || 'KT-Auto') + '</strong></td>' +
-                            '<td>' + r.full_name + '</td>' +
+                            '<td>' + (r.full_name || 'Subscriber') + '</td>' +
                             '<td>' + (r.phone_number || 'N/A') + '</td>' +
                             '<td>' + (r.cnic_id || 'N/A') + '</td>' +
-                            '<td>' + (r.area_sector || 'General') + '</td>' +
                             '<td>' + (r.package_name || '10 Mbps Basic') + '</td>' +
-                            '<td><code>' + (r.assigned_ip_ipoe || '192.168.10.100') + '</code></td>' +
+                            '<td><code>' + (r.account_password || r.password || '••••••') + '</code></td>' +
+                            '<td>' + (r.nas_server || r.assigned_ip_ipoe || 'NAS-Lahore-01') + '</td>' +
+                            '<td><span class="badge badge-info">' + (r.c_status || 'Paid') + '</span></td>' +
                             '<td>' + statusBadge + '</td>' +
+                            '<td><strong>Rs ' + (r.monthly_due || 2500) + '</strong></td>' +
+                            '<td>' + (r.expiry_date || '2026-10-06') + '</td>' +
+                            '<td>' + (r.address || r.area_sector || 'Lahore') + '</td>' +
                         '</tr>';
                     });
 
                     $('#preview-table-body').html(rowsHtml);
                     $('#import-preview-section').show();
-                    self.showToast('Parsed ' + records.length + ' subscribers from Member Sheet!', 'success');
+                    self.showToast('🎉 Parsed ' + records.length + ' subscriber rows from uploaded sheet!', 'success');
                 };
-                reader.readAsText(file);
+
+                if (isJson) {
+                    reader.readAsText(file);
+                } else {
+                    reader.readAsArrayBuffer(file);
+                }
             }
 
             $(document).on('click', '#btn-download-sample-csv', function(e) {
@@ -1337,8 +1401,13 @@
                         existing.address = item.address || existing.address;
                         existing.package_id = pkg ? pkg.id : existing.package_id;
                         existing.package_name = pkg ? pkg.package_name : (item.package_name || existing.package_name);
-                        existing.assigned_ip_ipoe = item.assigned_ip_ipoe || existing.assigned_ip_ipoe;
-                        existing.status = item.status || existing.status;
+                        existing.account_password = item.account_password || item.password || existing.account_password || '123456';
+                        existing.nas_server = item.nas_server || existing.nas_server || 'NAS-Lahore-01';
+                        existing.assigned_ip_ipoe = item.assigned_ip_ipoe || item.nas_server || existing.assigned_ip_ipoe || '192.168.10.100';
+                        existing.c_status = item.c_status || existing.c_status || 'Paid';
+                        existing.status = item.status || existing.status || 'active';
+                        existing.monthly_due = item.monthly_due ? parseInt(item.monthly_due) : (existing.monthly_due || 2500);
+                        existing.expiry_date = item.expiry_date || existing.expiry_date || '2026-10-06';
                     } else {
                         var autoNextId = localCusts.length ? Math.max.apply(null, localCusts.map(function(c){return parseInt(c.id);})) + 1 : 1;
                         var autoCode = code || 'KT-' + (1000 + autoNextId);
@@ -1352,13 +1421,17 @@
                             address: item.address || '',
                             package_id: pkg ? pkg.id : 1,
                             package_name: pkg ? pkg.package_name : (item.package_name || '10 Mbps Fiber Basic'),
+                            account_password: item.account_password || item.password || '123456',
+                            nas_server: item.nas_server || 'NAS-Lahore-01',
                             assigned_ip_ipoe: item.assigned_ip_ipoe || '192.168.10.100',
+                            c_status: item.c_status || 'Paid',
                             connection_type: item.connection_type || 'Fiber_FTTH',
                             billing_cycle_day: parseInt(item.billing_cycle_day) || 1,
                             status: item.status || 'active',
+                            monthly_due: item.monthly_due ? parseInt(item.monthly_due) : 2500,
+                            expiry_date: item.expiry_date || '2026-10-06',
                             activated_at: new Date().toISOString(),
-                            days_remaining: 30,
-                            expiry_date: '2026-10-06'
+                            days_remaining: 30
                         });
                     }
                 });
@@ -2337,14 +2410,18 @@
                         <table class="kt-table">
                             <thead>
                                 <tr>
-                                    <th>Code</th>
-                                    <th>Full Name</th>
-                                    <th>Phone</th>
-                                    <th>CNIC</th>
-                                    <th>Area / Sector</th>
-                                    <th>Package</th>
-                                    <th>Assigned IP</th>
-                                    <th>Status</th>
+                                    <th>Account ID / Secret</th>
+                                    <th>Profile Name</th>
+                                    <th>Phone / WhatsApp</th>
+                                    <th>CNIC / Identity</th>
+                                    <th>Package Tier</th>
+                                    <th>Password</th>
+                                    <th>NAS Server</th>
+                                    <th>C.Status</th>
+                                    <th>Profile Status</th>
+                                    <th>Monthly Due</th>
+                                    <th>Expiration Date</th>
+                                    <th>Address / Sector</th>
                                 </tr>
                             </thead>
                             <tbody id="preview-table-body">

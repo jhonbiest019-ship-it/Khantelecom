@@ -349,8 +349,13 @@ function processRequest(data, res) {
                     existing.address = item.address || existing.address;
                     existing.package_id = pkg ? pkg.id : existing.package_id;
                     existing.package_name = pkg ? pkg.package_name : (item.package_name || existing.package_name);
-                    existing.assigned_ip_ipoe = item.assigned_ip_ipoe || existing.assigned_ip_ipoe;
-                    existing.status = item.status || existing.status;
+                    existing.account_password = item.account_password || item.password || existing.account_password || '123456';
+                    existing.nas_server = item.nas_server || existing.nas_server || 'NAS-Lahore-01';
+                    existing.assigned_ip_ipoe = item.assigned_ip_ipoe || item.nas_server || existing.assigned_ip_ipoe || '192.168.10.100';
+                    existing.c_status = item.c_status || existing.c_status || 'Paid';
+                    existing.status = item.status || existing.status || 'active';
+                    existing.monthly_due = item.monthly_due ? parseInt(item.monthly_due) : (existing.monthly_due || 2500);
+                    existing.expiry_date = item.expiry_date || existing.expiry_date || '2026-10-06';
                     updatedCount++;
                 } else {
                     const autoNextId = customers.length ? Math.max(...customers.map(c => c.id)) + 1 : 1;
@@ -365,11 +370,17 @@ function processRequest(data, res) {
                         address: item.address || '',
                         package_id: pkg ? pkg.id : 1,
                         package_name: pkg ? pkg.package_name : (item.package_name || '10 Mbps Fiber Basic'),
+                        account_password: item.account_password || item.password || '123456',
+                        nas_server: item.nas_server || 'NAS-Lahore-01',
                         assigned_ip_ipoe: item.assigned_ip_ipoe || '192.168.10.100',
+                        c_status: item.c_status || 'Paid',
                         connection_type: item.connection_type || 'Fiber_FTTH',
                         billing_cycle_day: parseInt(item.billing_cycle_day) || 1,
                         status: item.status || 'active',
-                        activated_at: new Date().toISOString()
+                        monthly_due: item.monthly_due ? parseInt(item.monthly_due) : 2500,
+                        expiry_date: item.expiry_date || '2026-10-06',
+                        activated_at: new Date().toISOString(),
+                        days_remaining: 30
                     };
                     customers.push(newCust);
                     addedCount++;
