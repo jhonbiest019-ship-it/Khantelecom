@@ -47,31 +47,31 @@
             <!-- Collapsible Sidebar & Mobile Drawer -->
             <aside id="kt-sidebar" class="kt-sidebar">
                 <nav class="sidebar-nav">
-                    <a href="#dashboard" class="nav-item active" data-view="dashboard">
+                    <a href="#dashboard" class="nav-item active" data-view="dashboard" onclick="KT_App.switchView('dashboard')">
                         <span class="nav-icon">📊</span>
                         <span class="nav-text">Dashboard</span>
                     </a>
-                    <a href="#customers" class="nav-item" data-view="customers">
+                    <a href="#customers" class="nav-item" data-view="customers" onclick="KT_App.switchView('customers')">
                         <span class="nav-icon">👥</span>
                         <span class="nav-text">Customers</span>
                     </a>
-                    <a href="#packages" class="nav-item" data-view="packages">
+                    <a href="#packages" class="nav-item" data-view="packages" onclick="KT_App.switchView('packages')">
                         <span class="nav-icon">⚡</span>
                         <span class="nav-text">Packages</span>
                     </a>
-                    <a href="#products" class="nav-item" data-view="products">
+                    <a href="#products" class="nav-item" data-view="products" onclick="KT_App.switchView('products')">
                         <span class="nav-icon">📦</span>
                         <span class="nav-text">Products & Stock</span>
                     </a>
-                    <a href="#invoices" class="nav-item" data-view="invoices">
+                    <a href="#invoices" class="nav-item" data-view="invoices" onclick="KT_App.switchView('invoices')">
                         <span class="nav-icon">📄</span>
                         <span class="nav-text">Invoices & Recovery</span>
                     </a>
-                    <a href="#staff" class="nav-item" data-view="staff">
+                    <a href="#staff" class="nav-item" data-view="staff" onclick="KT_App.switchView('staff')">
                         <span class="nav-icon">🔐</span>
                         <span class="nav-text">Staff Matrix</span>
                     </a>
-                    <a href="#logs" class="nav-item" data-view="logs">
+                    <a href="#logs" class="nav-item" data-view="logs" onclick="KT_App.switchView('logs')">
                         <span class="nav-icon">📜</span>
                         <span class="nav-text">Activity Logs</span>
                     </a>
@@ -561,6 +561,6 @@
             nonce: 'demo_nonce'
         };
     </script>
-    <script src="/assets/js/kt-app.js?v=2.2.0"></script>
+    <script src="/assets/js/kt-app.js?v=2.3.0"></script>
 </body>
 </html>

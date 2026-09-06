@@ -168,16 +168,18 @@
         bindNavigation: function() {
             var self = this;
 
-            $('#kt-drawer-toggle').on('click', function() {
+            $(document).on('click', '#kt-drawer-toggle', function() {
                 $('#kt-sidebar').toggleClass('active');
             });
 
-            $('.nav-item').on('click', function(e) {
+            $(document).on('click', '.nav-item', function(e) {
                 e.preventDefault();
                 var view = $(this).data('view');
-                window.location.hash = view;
-                self.switchView(view);
-                $('#kt-sidebar').removeClass('active');
+                if (view) {
+                    window.location.hash = view;
+                    self.switchView(view);
+                    $('#kt-sidebar').removeClass('active');
+                }
             });
 
             $(window).on('hashchange', function() {
@@ -1329,16 +1331,6 @@
                             match.activated_at = sc.activated_at;
                             match.package_name = sc.package_name;
                         }
-                    });
-                    self.setStoredCustomers(localCusts);
-                    self.renderCustomersTable(localCusts, search, status);
-                }
-            });
-        },, function(res) {
-                if (res && res.success && Array.isArray(res.data)) {
-                    res.data.forEach(function(sc) {
-                        var match = localCusts.find(function(lc) { return parseInt(lc.id) === parseInt(sc.id); });
-                        if (!match) localCusts.push(sc);
                     });
                     self.setStoredCustomers(localCusts);
                     self.renderCustomersTable(localCusts, search, status);
