@@ -49,6 +49,90 @@
             $('.user-role').text(u.role_level.toUpperCase().replace('_', ' '));
         },
 
+        /* ==================== LOCAL STORAGE HELPERS ==================== */
+        getStoredCustomers: function() {
+            var raw = localStorage.getItem('kt_storage_customers');
+            if (raw) {
+                try { return JSON.parse(raw); } catch(e) {}
+            }
+            return [
+                { id: 1, customer_code: 'KT-1001', full_name: 'Muhammad Ali', phone_number: '03001234567', cnic_id: '35202-1234567-1', area_sector: 'Sector F-11', address: 'Street 4, House 12', package_id: 1, package_name: '10 Mbps Fiber Basic', assigned_ip_ipoe: '192.168.10.50', connection_type: 'Fiber_FTTH', billing_cycle_day: 1, status: 'active', activated_at: new Date().toISOString(), days_remaining: 30, expiry_date: '2026-10-06' }
+            ];
+        },
+        setStoredCustomers: function(data) {
+            try { localStorage.setItem('kt_storage_customers', JSON.stringify(data)); } catch(e) {}
+        },
+
+        getStoredPackages: function() {
+            var raw = localStorage.getItem('kt_storage_packages');
+            if (raw) {
+                try { return JSON.parse(raw); } catch(e) {}
+            }
+            return [
+                { id: 1, package_name: '10 Mbps Fiber Basic', speed_mbps: 10, cost_price: 600, sale_price: 1200, margin: 600, status: 'active' },
+                { id: 2, package_name: '20 Mbps Fiber Pro', speed_mbps: 20, cost_price: 1000, sale_price: 2000, margin: 1000, status: 'active' },
+                { id: 3, package_name: '50 Mbps Fiber Ultra', speed_mbps: 50, cost_price: 1800, sale_price: 3500, margin: 1700, status: 'active' },
+                { id: 4, package_name: '100 Mbps Enterprise Fiber', speed_mbps: 100, cost_price: 3000, sale_price: 6000, margin: 3000, status: 'active' }
+            ];
+        },
+        setStoredPackages: function(data) {
+            try { localStorage.setItem('kt_storage_packages', JSON.stringify(data)); } catch(e) {}
+        },
+
+        getStoredProducts: function() {
+            var raw = localStorage.getItem('kt_storage_products');
+            if (raw) {
+                try { return JSON.parse(raw); } catch(e) {}
+            }
+            return [
+                { id: 1, product_name: 'TP-Link Dual Band Gigabit Router C6', category: 'Routers', unit: 'pcs', cost_price: 4500, sale_price: 6500, margin: 2000, stock_qty: 15 },
+                { id: 2, product_name: 'GPON ONU Fiber Optical Node Modem', category: 'ONU / Fiber', unit: 'pcs', cost_price: 2200, sale_price: 3500, margin: 1300, stock_qty: 30 },
+                { id: 3, product_name: 'Single Mode 2-Core Outdoor Drop Cable (Roll)', category: 'Fiber Cable', unit: 'roll', cost_price: 8000, sale_price: 12000, margin: 4000, stock_qty: 8 }
+            ];
+        },
+        setStoredProducts: function(data) {
+            try { localStorage.setItem('kt_storage_products', JSON.stringify(data)); } catch(e) {}
+        },
+
+        getStoredInvoices: function() {
+            var raw = localStorage.getItem('kt_storage_invoices');
+            if (raw) {
+                try { return JSON.parse(raw); } catch(e) {}
+            }
+            return [
+                { id: 1, invoice_number: 'INV-2026-001', customer_id: 1, customer_code: 'KT-1001', full_name: 'Muhammad Ali', phone_number: '03001234567', area_sector: 'Sector F-11', billing_month: 'September 2026', amount_due: 1200, amount_paid: 1200, discount: 0, payment_status: 'paid', payment_method: 'cash', collector_name: 'Saif Telecom', paid_at: new Date().toLocaleString() }
+            ];
+        },
+        setStoredInvoices: function(data) {
+            try { localStorage.setItem('kt_storage_invoices', JSON.stringify(data)); } catch(e) {}
+        },
+
+        getStoredStaff: function() {
+            var raw = localStorage.getItem('kt_storage_staff');
+            if (raw) {
+                try { return JSON.parse(raw); } catch(e) {}
+            }
+            return [
+                { user_id: 1, user_login: 'saif', display_name: 'Saif Telecom', user_email: 'saif@khantelecom.com', permissions: { role_level: 'super_admin', can_view_financials: 1, can_create_invoice: 1, can_collect_payment: 1, can_edit_packages: 1, can_manage_customers: 1, can_export_reports: 1, approval_status: 'approved' } }
+            ];
+        },
+        setStoredStaff: function(data) {
+            try { localStorage.setItem('kt_storage_staff', JSON.stringify(data)); } catch(e) {}
+        },
+
+        getStoredLogs: function() {
+            var raw = localStorage.getItem('kt_storage_logs');
+            if (raw) {
+                try { return JSON.parse(raw); } catch(e) {}
+            }
+            return [
+                { id: 1, user_id: 1, user_name: 'Saif Telecom', role_level: 'super_admin', action_type: 'system_init', description: 'Khan Telecom ERP Engine initialized successfully.', created_at: new Date().toLocaleString() }
+            ];
+        },
+        setStoredLogs: function(data) {
+            try { localStorage.setItem('kt_storage_logs', JSON.stringify(data)); } catch(e) {}
+        },
+
         /* ==================== LOGIN & SESSION HANDLER ==================== */
         bindLogin: function() {
             var self = this;
@@ -943,11 +1027,48 @@
             $(document).on('submit', '#kt-invoice-form', function(e) {
                 e.preventDefault();
                 var user = self.getUserSession();
+                var formDataRaw = $(this).serializeArray();
+                var formData = {};
+                formDataRaw.forEach(function(item) { formData[item.name] = item.value; });
+
+                var custs = self.getStoredCustomers();
+                var custId = parseInt(formData.customer_id);
+                var cust = custs.find(function(c) { return parseInt(c.id) === custId; }) || { full_name: 'Subscriber', customer_code: 'KT-1001', area_sector: 'Sector F-11', phone_number: '03001234567' };
+
+                var invs = self.getStoredInvoices();
+                var newInvId = invs.length > 0 ? Math.max.apply(null, invs.map(function(i){return parseInt(i.id);})) + 1 : 1;
+                var amountDue = parseFloat(formData.amount_due) || 1200;
+                var amountPaid = parseFloat(formData.amount_paid) || 0;
+                var status = amountPaid >= amountDue ? 'paid' : 'unpaid';
+
+                var newInv = {
+                    id: newInvId,
+                    invoice_number: 'INV-2026-' + (100 + newInvId),
+                    customer_id: custId,
+                    customer_code: cust.customer_code,
+                    full_name: cust.full_name,
+                    phone_number: cust.phone_number,
+                    area_sector: cust.area_sector,
+                    billing_month: formData.billing_month || 'September 2026',
+                    amount_due: amountDue,
+                    amount_paid: amountPaid,
+                    discount: parseFloat(formData.discount) || 0,
+                    payment_status: status,
+                    payment_method: formData.payment_method || 'cash',
+                    collector_name: user.display_name,
+                    paid_at: status === 'paid' ? new Date().toLocaleString() : ''
+                };
+
+                invs.push(newInv);
+                self.setStoredInvoices(invs);
+                self.renderInvoicesTable(invs);
+                self.showToast('Invoice generated successfully!', 'success');
+                $('#kt-invoice-modal, #kt-modal-backdrop').hide();
+
                 var postData = $(this).serialize() + '&action=kt_create_invoice&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
                 $.post(ktConfig.ajaxUrl, postData, function(res) {
-                    self.showToast('Invoice generated successfully!', 'success');
-                    $('#kt-invoice-modal, #kt-modal-backdrop').hide();
                     self.fetchInvoices();
+                    self.fetchDashboardStats(true);
                 });
             });
 
@@ -966,14 +1087,36 @@
             $(document).on('submit', '#kt-payment-form', function(e) {
                 e.preventDefault();
                 var user = self.getUserSession();
+                var formDataRaw = $(this).serializeArray();
+                var formData = {};
+                formDataRaw.forEach(function(item) { formData[item.name] = item.value; });
+
+                var invId = parseInt(formData.invoice_id);
+                var amountPaid = parseFloat(formData.amount_paid) || 0;
+
+                var invs = self.getStoredInvoices();
+                var inv = invs.find(function(i) { return parseInt(i.id) === invId; });
+                if (inv) {
+                    inv.amount_paid = (parseFloat(inv.amount_paid || 0) + amountPaid);
+                    if (inv.amount_paid >= inv.amount_due) {
+                        inv.payment_status = 'paid';
+                    }
+                    inv.paid_at = new Date().toLocaleString();
+                    inv.payment_method = formData.payment_method || 'cash';
+                    inv.collector_name = user.display_name;
+                    self.setStoredInvoices(invs);
+                    self.renderInvoicesTable(invs);
+                }
+
+                self.showToast('Payment collected & slip ready!', 'success');
+                $('#kt-payment-modal, #kt-modal-backdrop').hide();
+                if (invId) {
+                    self.openReceiptModal(invId, 'invoice');
+                }
+
                 var postData = $(this).serialize() + '&action=kt_collect_payment&nonce=' + ktConfig.nonce + '&collector_id=' + user.user_id + '&collector_name=' + encodeURIComponent(user.display_name) + '&collector_role=' + user.role_level;
                 $.post(ktConfig.ajaxUrl, postData, function(res) {
-                    self.showToast('Payment collected & slip ready!', 'success');
-                    $('#kt-payment-modal, #kt-modal-backdrop').hide();
                     self.fetchInvoices();
-                    if (res && res.success && res.data && res.data.invoice_id) {
-                        self.openReceiptModal(res.data.invoice_id, 'invoice');
-                    }
                 });
             });
 
