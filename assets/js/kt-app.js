@@ -205,6 +205,42 @@
             }, 3200);
         },
 
+        
+        openCreatePackageModal: function() {
+            try {
+                if ($('#kt-package-form').length) $('#kt-package-form')[0].reset();
+                $('#kt-package-form input[name="id"]').val(0);
+                $('#package-modal-title').text('Create Package Tier');
+                $('#pkg-margin-preview').text('PKR 1000.00');
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-package-modal').show().css('display', 'flex');
+            } catch(e) {
+                console.error("Error opening package modal:", e);
+            }
+        },
+
+        openEditPackageModal: function(elem) {
+            try {
+                var p = $(elem).data('json');
+                if (typeof p === 'string') { try { p = JSON.parse(p); } catch(e) {} }
+                $('#kt-package-form input[name="id"]').val(p.id);
+                $('#kt-package-form input[name="package_name"]').val(p.package_name);
+                $('#kt-package-form input[name="speed_mbps"]').val(p.speed_mbps);
+                $('#kt-package-form input[name="cost_price"]').val(p.cost_price || 0);
+                $('#kt-package-form input[name="sale_price"]').val(p.sale_price);
+                $('#kt-package-form select[name="status"]').val(p.status || 'active');
+
+                var margin = Math.max(0, parseFloat(p.sale_price) - parseFloat(p.cost_price || 0));
+                $('#pkg-margin-preview').text('PKR ' + margin.toFixed(2));
+
+                $('#package-modal-title').text('Edit Package Tier');
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-package-modal').show().css('display', 'flex');
+            } catch(e) {
+                console.error("Error editing package modal:", e);
+            }
+        },
+
         bindModals: function() {
             var self = this;
             $(document).on('click', '.modal-close, #kt-modal-backdrop', function() {
@@ -277,13 +313,9 @@
             var self = this;
 
             // --- 1. PACKAGES MODAL & FORMS ---
-            $(document).on('click', '#btn-add-package', function() {
-                $('#kt-package-form')[0].reset();
-                $('#kt-package-form input[name="id"]').val(0);
-                $('#package-modal-title').text('Create Package Tier');
-                $('#pkg-margin-preview').text('PKR 1000.00');
-                $('#kt-modal-backdrop').show();
-                $('#kt-package-modal').css('display', 'flex');
+            $(document).on('click', '#btn-add-package', function(e) {
+                e.preventDefault();
+                self.openCreatePackageModal();
             });
 
             $(document).on('click', '.btn-edit-package', function() {
@@ -902,7 +934,7 @@
                         <h2 class="section-title">ISP Internet Packages</h2>
                         <p style="font-size:12px; color: var(--text-muted);">Define bandwidth speeds, wholesale cost prices, and retail pricing.</p>
                     </div>
-                    <button id="btn-add-package" class="btn btn-primary">➕ Create New Package</button>
+                    <button id="btn-add-package" onclick="KT_App.openCreatePackageModal()" class="btn btn-primary">➕ Create New Package</button>
                 </div>
 
                 <div class="kt-table-container">
@@ -1451,6 +1483,7 @@
     };
 
 
+    window.KT_App = KT_App;
     $(document).ready(function() {
         KT_App.init();
     });
