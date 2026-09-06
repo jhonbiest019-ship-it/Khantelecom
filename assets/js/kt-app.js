@@ -1189,9 +1189,14 @@
             var parsedSubscribers = [];
 
             $(document).on('click', '#btn-browse-file, #drop-zone-container', function(e) {
+                if (e.target.id === 'member-sheet-input') return;
                 e.preventDefault();
                 $('#member-sheet-input').val('');
                 $('#member-sheet-input').click();
+            });
+
+            $(document).on('click', '#member-sheet-input', function(e) {
+                e.stopPropagation();
             });
 
             $(document).on('change', '#member-sheet-input', function(e) {
@@ -1214,7 +1219,14 @@
                 }
             });
 
-            function extractSubscriberFieldsFromRow(row) {
+            $(document).on('click', '#btn-quick-upload-now', function(e) {
+                e.preventDefault();
+                $('#btn-confirm-bulk-import').click();
+            });
+
+            function extractSubscriberFieldsFromRow(row, rowIndex) {
+                if (!row || typeof row !== 'object') return null;
+
                 function getVal(keywords) {
                     var keys = Object.keys(row);
                     for (var k = 0; k < keys.length; k++) {
@@ -1222,33 +1234,47 @@
                         for (var w = 0; w < keywords.length; w++) {
                             var kwLower = keywords[w].toLowerCase().replace(/[^a-z0-9]/g, '');
                             if (keyLower.includes(kwLower)) {
-                                return String(row[keys[k]]).trim();
+                                var val = String(row[keys[k]]).trim();
+                                if (val && val !== 'undefined' && val !== 'null') return val;
                             }
                         }
                     }
                     return '';
                 }
 
-                var name = getVal(['full name', 'profilename', 'subscribername', 'subscriber', 'name', 'customer']);
-                if (!name) return null;
+                var code = getVal(['accountid', 'secret', 'customercode', 'subscribercode', 'code', 'id', 'account', 'username', 'user']);
+                var name = getVal(['full name', 'profilename', 'subscribername', 'subscriber', 'name', 'customer', 'client', 'member']);
+                
+                // Smart fallback if name keyword didn't match
+                if (!name) {
+                    var keys = Object.keys(row);
+                    for (var i = 0; i < keys.length; i++) {
+                        var strVal = String(row[keys[i]] || '').trim();
+                        if (strVal && isNaN(strVal) && strVal.length >= 2 && !strVal.includes('@') && !strVal.includes('192.168.')) {
+                            name = strVal;
+                            break;
+                        }
+                    }
+                }
+                if (!name && code) name = 'Subscriber ' + code;
+                if (!name) name = 'Subscriber #' + (rowIndex || 1);
 
-                var code = getVal(['accountid', 'secret', 'customercode', 'subscribercode', 'code', 'id']);
-                var phone = getVal(['phone', 'whatsapp', 'mobile', 'contact', 'cell']);
-                var cnic = getVal(['cnic', 'identity', 'nic', 'cnicid']);
-                var pkgName = getVal(['packagetier', 'packagename', 'package', 'profile', 'tier', 'plan']);
-                var pass = getVal(['password', 'secretpass', 'pass']);
+                var phone = getVal(['phone', 'whatsapp', 'mobile', 'contact', 'cell', 'num']);
+                var cnic = getVal(['cnic', 'identity', 'nic', 'cnicid', 'cnicno']);
+                var pkgName = getVal(['packagetier', 'packagename', 'package', 'profile', 'tier', 'plan', 'speed']);
+                var pass = getVal(['password', 'secretpass', 'pass', 'pwd']);
                 var nas = getVal(['nasserver', 'nas', 'router', 'server', 'assignedip', 'ipoe', 'ip']);
-                var cStat = getVal(['cstatus', 'creditstatus', 'c_status', 'billingstatus', 'paymentstatus']);
-                var rawStatus = getVal(['profilestatus', 'status', 'state', 'accstatus']);
-                var monthlyDue = getVal(['monthlydue', 'monthlycharges', 'due', 'price', 'bill', 'charges', 'amount', 'fee']);
-                var expiry = getVal(['expirationdate', 'expiration', 'expirydate', 'expiry', 'duedate', 'validuntil']);
-                var area = getVal(['areasector', 'sector', 'area', 'zone']);
+                var cStat = getVal(['cstatus', 'creditstatus', 'c_status', 'billingstatus', 'paymentstatus', 'credit']);
+                var rawStatus = getVal(['profilestatus', 'status', 'state', 'accstatus', 'active']);
+                var monthlyDue = getVal(['monthlydue', 'monthlycharges', 'due', 'price', 'bill', 'charges', 'amount', 'fee', 'rs', 'pkr']);
+                var expiry = getVal(['expirationdate', 'expiration', 'expirydate', 'expiry', 'duedate', 'validuntil', 'date']);
+                var area = getVal(['areasector', 'sector', 'area', 'zone', 'city']);
                 var address = getVal(['address', 'location', 'street', 'house']);
 
                 var status = 'active';
                 if (rawStatus) {
                     var lowerS = rawStatus.toLowerCase();
-                    if (lowerS.includes('inact') || lowerS.includes('susp') || lowerS.includes('disab') || lowerS.includes('expir') || lowerS.includes('off') || lowerS.includes('🔴')) {
+                    if (lowerS.includes('inact') || lowerS.includes('susp') || lowerS.includes('disab') || lowerS.includes('expir') || lowerS.includes('off') || lowerS.includes('🔴') || lowerS.includes('0') || lowerS.includes('false')) {
                         status = 'inactive';
                     }
                 }
@@ -1256,18 +1282,18 @@
                 var dueAmount = 2500;
                 if (monthlyDue) {
                     var cleanNum = monthlyDue.replace(/[^0-9.]/g, '');
-                    if (cleanNum) dueAmount = parseInt(cleanNum) || 2500;
+                    if (cleanNum) dueAmount = parseFloat(cleanNum) || 2500;
                 }
 
                 return {
-                    customer_code: code || '',
+                    customer_code: code || ('KT-' + (1000 + (rowIndex || 1))),
                     full_name: name,
                     phone_number: phone || '03000000000',
                     cnic_id: cnic || '',
                     package_name: pkgName || '10 Mbps Fiber Basic',
                     account_password: pass || '123456',
                     nas_server: nas || 'NAS-Lahore-01',
-                    assigned_ip_ipoe: (nas && nas.match(/\d+\.\d+\.\d+\.\d+/)) ? nas : '192.168.10.100',
+                    assigned_ip_ipoe: (nas && nas.match(/\d+\.\d+\.\d+\.\d+/)) ? nas : ('192.168.10.' + (100 + (rowIndex || 1))),
                     c_status: cStat || 'Paid',
                     status: status,
                     monthly_due: dueAmount,
@@ -1278,6 +1304,9 @@
             }
 
             function parseMemberSheetFile(file) {
+                if (!file) return;
+                self.showToast('⏳ Reading sheet file "' + file.name + '"...', 'info');
+
                 var isJson = file.name.toLowerCase().endsWith('.json');
                 var reader = new FileReader();
 
@@ -1289,15 +1318,16 @@
                             var rawArr = JSON.parse(content);
                             if (Array.isArray(rawArr)) records = rawArr;
                             else if (rawArr.customers && Array.isArray(rawArr.customers)) records = rawArr.customers;
+                            else if (rawArr.subscribers && Array.isArray(rawArr.subscribers)) records = rawArr.subscribers;
                         } else if (typeof XLSX !== 'undefined') {
                             var data = new Uint8Array(evt.target.result);
                             var workbook = XLSX.read(data, { type: 'array' });
                             var sheetName = workbook.SheetNames[0];
                             var rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
                             
-                            rawRows.forEach(function(row) {
-                                var obj = extractSubscriberFieldsFromRow(row);
-                                if (obj && obj.full_name) {
+                            rawRows.forEach(function(row, idx) {
+                                var obj = extractSubscriberFieldsFromRow(row, idx + 1);
+                                if (obj) {
                                     records.push(obj);
                                 }
                             });
@@ -1312,8 +1342,8 @@
                                     var cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(function(c) { return c.trim().replace(/^["']|["']$/g, ''); });
                                     var rowObj = {};
                                     headers.forEach(function(h, idx) { rowObj[h] = cols[idx] || ''; });
-                                    var obj = extractSubscriberFieldsFromRow(rowObj);
-                                    if (obj && obj.full_name) records.push(obj);
+                                    var obj = extractSubscriberFieldsFromRow(rowObj, i);
+                                    if (obj) records.push(obj);
                                 }
                             }
                         }
@@ -1324,7 +1354,7 @@
                     }
 
                     if (records.length === 0) {
-                        alert('No valid subscriber records found in the uploaded sheet. Please ensure the sheet has columns for Profile Name, Account ID, Phone, Package, etc.');
+                        alert('No valid subscriber records found in the uploaded sheet. Please ensure the sheet has subscriber data rows.');
                         return;
                     }
 
@@ -1352,7 +1382,19 @@
 
                     $('#preview-table-body').html(rowsHtml);
                     $('#import-preview-section').slideDown(300);
-                    self.showToast('🎉 File "' + (file.name || 'Member Sheet') + '" selected & parsed! ' + records.length + ' subscriber rows ready to upload.', 'success');
+
+                    $('#file-upload-status-box').html(
+                        '<div style="margin-top:16px; padding:14px 18px; background:rgba(46, 160, 67, 0.15); border:1px solid #2ea043; border-radius:10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">' +
+                            '<div>' +
+                                '<strong style="color:var(--text-main); font-size:15px; display:flex; align-items:center; gap:6px;">📄 Selected Sheet: ' + file.name + '</strong>' +
+                                '<span style="font-size:12px; color:var(--text-muted);">' + records.length + ' subscriber rows successfully parsed & ready to upload to ERP system.</span>' +
+                            '</div>' +
+                            '<button type="button" id="btn-quick-upload-now" class="btn btn-success btn-lg">🚀 Upload Now (' + records.length + ' Rows)</button>' +
+                        '</div>'
+                    );
+
+                    self.showToast('🎉 File "' + (file.name || 'Member Sheet') + '" parsed! ' + records.length + ' rows ready to upload.', 'success');
+                    
                     if ($('#import-preview-section').length) {
                         $('html, body').animate({
                             scrollTop: $('#import-preview-section').offset().top - 80
@@ -2405,13 +2447,16 @@
                             <div style="font-size:40px; margin-bottom:8px;">📥</div>
                             <h4 style="margin:0 0 6px 0; font-size:15px; color:var(--text-main);">Click or Drag & Drop Member Sheet Here</h4>
                             <p style="margin:0; font-size:12px; color:var(--text-muted);">Select CSV or Excel Member Sheet file from your computer</p>
-                            <input type="file" id="member-sheet-input" accept=".csv, .xlsx, .xls, .json" style="display:none;">
                         </div>
 
+                        <input type="file" id="member-sheet-input" accept=".csv, .xlsx, .xls, .json, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="display:none;">
+
                         <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
-                            <button id="btn-download-sample-csv" class="btn btn-secondary btn-sm">📋 Download Sample CSV Template</button>
-                            <button id="btn-browse-file" class="btn btn-primary btn-sm">📁 Select File</button>
+                            <button type="button" id="btn-download-sample-csv" class="btn btn-secondary btn-sm">📋 Download Sample CSV Template</button>
+                            <button type="button" id="btn-browse-file" class="btn btn-primary btn-sm">📁 Select File</button>
                         </div>
+
+                        <div id="file-upload-status-box"></div>
                     </div>
 
                     <!-- System Backup & Database Control Card -->
