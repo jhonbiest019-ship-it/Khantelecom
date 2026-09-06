@@ -208,7 +208,8 @@ class KT_App_Shell {
                         </nav>
                         
                         <div class="sidebar-footer">
-                            <p>Khan Telecom v<?php echo KT_VERSION; ?></p>
+                            <p style="margin:0 0 4px 0; font-size:12px; font-weight:600; color:var(--text-main);">Khan Telecom v<?php echo KT_VERSION; ?></p>
+                            <p class="credits" style="margin:0; font-size:11px; color:var(--text-muted);">Developed by Muhammad Irfan</p>
                         </div>
                     </aside>
 
