@@ -123,7 +123,7 @@
 
                 $.post(ktConfig.ajaxUrl, data, function(res) {
                     if (res.success) {
-                        alert('✅ ' + res.data.message);
+                        self.showToast(res.data.message, 'success');
                         if (res.data.updated_user) {
                             localStorage.setItem('kt_user', JSON.stringify(res.data.updated_user));
                             self.updateHeaderUserInfo();
@@ -155,7 +155,7 @@
                 var data = $(this).serialize() + '&action=kt_register_staff_request&nonce=' + ktConfig.nonce;
                 $.post(ktConfig.ajaxUrl, data, function(res) {
                     if (res.success) {
-                        alert('✅ ' + res.data.message);
+                        self.showToast(res.data.message, 'success');
                         $('#kt-staff-register-modal, #kt-modal-backdrop').hide();
                     } else {
                         alert(res.data.message || 'Error submitting registration request');
@@ -188,6 +188,23 @@
 
         
         /* ==================== MODALS & CALCULATORS ==================== */
+        
+        showToast: function(message, type) {
+            type = type || 'success';
+            var icon = type === 'success' ? '⚡' : (type === 'danger' ? '🗑️' : 'ℹ️');
+            var $container = $('#kt-toast-container');
+            if (!$container.length) {
+                $('body').append('<div id="kt-toast-container" class="kt-toast-container"></div>');
+                $container = $('#kt-toast-container');
+            }
+            var $toast = $('<div class="kt-toast kt-toast-' + type + '"><span>' + icon + '</span><span>' + message + '</span></div>');
+            $container.append($toast);
+            setTimeout(function() {
+                $toast.css('animation', 'toastOut 0.3s ease forwards');
+                setTimeout(function() { $toast.remove(); }, 300);
+            }, 3200);
+        },
+
         bindModals: function() {
             var self = this;
             $(document).on('click', '.modal-close, #kt-modal-backdrop', function() {
@@ -329,7 +346,7 @@
                 var postData = $(this).serialize() + '&action=kt_save_package&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
                 $.post(ktConfig.ajaxUrl, postData, function(res) {
                     $submitBtn.prop('disabled', false).text(origText);
-                    alert('✅ Package saved successfully!');
+                    self.showToast('Package saved successfully & active!', 'success');
                     $('#kt-package-modal, #kt-modal-backdrop').hide();
                     self.fetchPackages();
                     self.fetchCustomers();
@@ -337,7 +354,7 @@
                     self.fetchDashboardStats(true);
                 }).fail(function() {
                     $submitBtn.prop('disabled', false).text(origText);
-                    alert('✅ Package active & saved locally!');
+                    self.showToast('Package active & saved locally!', 'success');
                     $('#kt-package-modal, #kt-modal-backdrop').hide();
                 });
             });
@@ -353,7 +370,7 @@
 
                     var u = self.getUserSession();
                     $.post(ktConfig.ajaxUrl, { action: 'kt_delete_package', nonce: ktConfig.nonce, package_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
-                        alert('✅ Package deleted!');
+                        self.showToast('Package deleted successfully!', 'success');
                         self.fetchPackages();
                         self.populateCustomerAndPackageSelects();
                     });
@@ -406,7 +423,7 @@
 
                     var u = self.getUserSession();
                     $.post(ktConfig.ajaxUrl, { action: 'kt_delete_customer', nonce: ktConfig.nonce, customer_id: id, current_user_id: u.user_id, current_user_name: encodeURIComponent(u.display_name), current_user_role: u.role_level }, function(res) {
-                        alert('✅ Subscriber deleted!');
+                        self.showToast('Subscriber profile deleted!', 'danger');
                         $('#kt-customer-modal, #kt-modal-backdrop').hide();
                         self.fetchCustomers();
                     });
@@ -461,13 +478,13 @@
                 var postData = $(this).serialize() + '&action=kt_save_customer&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
                 $.post(ktConfig.ajaxUrl, postData, function(res) {
                     $submitBtn.prop('disabled', false).text(origText);
-                    alert('✅ Subscriber saved successfully!');
+                    self.showToast('Subscriber saved successfully!', 'success');
                     $('#kt-customer-modal, #kt-modal-backdrop').hide();
                     self.fetchCustomers();
                     self.fetchDashboardStats(true);
                 }).fail(function() {
                     $submitBtn.prop('disabled', false).text(origText);
-                    alert('✅ Subscriber active & saved locally!');
+                    self.showToast('Subscriber active & saved locally!', 'success');
                     $('#kt-customer-modal, #kt-modal-backdrop').hide();
                 });
             });
@@ -490,7 +507,7 @@
                 var user = self.getUserSession();
                 var postData = $(this).serialize() + '&action=kt_create_invoice&nonce=' + ktConfig.nonce + '&current_user_id=' + user.user_id + '&current_user_name=' + encodeURIComponent(user.display_name) + '&current_user_role=' + user.role_level;
                 $.post(ktConfig.ajaxUrl, postData, function(res) {
-                    alert('✅ Invoice generated successfully!');
+                    self.showToast('Invoice generated successfully!', 'success');
                     $('#kt-invoice-modal, #kt-modal-backdrop').hide();
                     self.fetchInvoices();
                 });
@@ -513,7 +530,7 @@
                 var user = self.getUserSession();
                 var postData = $(this).serialize() + '&action=kt_collect_payment&nonce=' + ktConfig.nonce + '&collector_id=' + user.user_id + '&collector_name=' + encodeURIComponent(user.display_name) + '&collector_role=' + user.role_level;
                 $.post(ktConfig.ajaxUrl, postData, function(res) {
-                    alert('✅ Payment collected!');
+                    self.showToast('Payment collected & slip ready!', 'success');
                     $('#kt-payment-modal, #kt-modal-backdrop').hide();
                     self.fetchInvoices();
                     if (res && res.success && res.data && res.data.invoice_id) {

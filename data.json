@@ -116,6 +116,15 @@
       "sale_price": 5500,
       "margin": 2500,
       "status": "active"
+    },
+    {
+      "id": 14,
+      "package_name": "Smooth200MbpsUltra",
+      "speed_mbps": 200,
+      "cost_price": 5000,
+      "sale_price": 9000,
+      "margin": 4000,
+      "status": "active"
     }
   ],
   "customers": [
@@ -214,6 +223,15 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": 18,
+      "user_id": 1,
+      "user_name": "Saif Telecom",
+      "role_level": "super_admin",
+      "action_type": "package_create",
+      "description": "Created new broadband package: Smooth200MbpsUltra (200 Mbps)",
+      "created_at": "9/6/2026, 8:29:37 PM"
+    },
     {
       "id": 17,
       "user_id": 1,
