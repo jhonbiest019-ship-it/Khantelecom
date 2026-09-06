@@ -801,12 +801,11 @@ function processRequest(data, res) {
                     </div>
                     <div class="slip-footer">
                         <p>Thank you for choosing Khan Telecom!</p>
-                        <p class="slip-credits">Developed by Muhammad Irfan</p>
                     </div>
                 </div>
             `;
 
-            waTextRaw = `⚡ *KHAN TELECOM* ⚡\n_HARDWARE & EQUIPMENT RECEIPT_\n----------------------------------\n*RECEIPT NO:* ${saleNo}\n*DATE:* ${sale.date}\n*SUBSCRIBER ID:* ${cust.customer_code}\n*NAME:* ${cust.full_name}\n*PHONE:* ${cust.phone_number}\n*AREA:* ${cust.area_sector}\n----------------------------------\n*ITEM:* ${sale.product_name}\n*QUANTITY:* ${sale.quantity} ${prod ? prod.unit : 'pcs'}\n*UNIT PRICE:* PKR ${parseFloat(unitPrice).toFixed(2)}\n*TOTAL PAID:* PKR ${parseFloat(sale.total_sale).toFixed(2)}\n*PAYMENT METHOD:* CASH SETTLEMENT\n*STATUS:* PAID ✅\n----------------------------------\n*SOLD BY:* ${sale.sold_by || activeUser}\n==================================\nThank you for choosing Khan Telecom!\n*Developed by Muhammad Irfan*`;
+            waTextRaw = `⚡ *KHAN TELECOM* ⚡\n_HARDWARE & EQUIPMENT RECEIPT_\n----------------------------------\n*RECEIPT NO:* ${saleNo}\n*DATE:* ${sale.date}\n*SUBSCRIBER ID:* ${cust.customer_code}\n*NAME:* ${cust.full_name}\n*PHONE:* ${cust.phone_number}\n*AREA:* ${cust.area_sector}\n----------------------------------\n*ITEM:* ${sale.product_name}\n*QUANTITY:* ${sale.quantity} ${prod ? prod.unit : 'pcs'}\n*UNIT PRICE:* PKR ${parseFloat(unitPrice).toFixed(2)}\n*TOTAL PAID:* PKR ${parseFloat(sale.total_sale).toFixed(2)}\n*PAYMENT METHOD:* CASH SETTLEMENT\n*STATUS:* PAID ✅\n----------------------------------\n*SOLD BY:* ${sale.sold_by || activeUser}\n==================================\nThank you for choosing Khan Telecom!`;
         } else {
             const invId = parseInt(data.invoice_id);
             const inv = invoices.find(i => i.id === invId);
@@ -852,12 +851,11 @@ function processRequest(data, res) {
                     </div>
                     <div class="slip-footer">
                         <p>Thank you for choosing Khan Telecom!</p>
-                        <p class="slip-credits">Developed by Muhammad Irfan</p>
                     </div>
                 </div>
             `;
 
-            waTextRaw = `⚡ *KHAN TELECOM* ⚡\n_HIGH-SPEED BROADBAND PROVIDER_\n----------------------------------\n*RECEIPT NO:* ${inv.invoice_number}\n*DATE:* ${inv.paid_at || 'Just Now'}\n*SUBSCRIBER ID:* ${cust.customer_code}\n*NAME:* ${cust.full_name}\n*PHONE:* ${cust.phone_number}\n*AREA:* ${cust.area_sector}\n----------------------------------\n*PACKAGE:* ${pkg.package_name}\n*BILLING MONTH:* ${inv.billing_month}\n*AMOUNT DUE:* PKR ${parseFloat(inv.amount_due).toFixed(2)}\n*AMOUNT PAID:* PKR ${parseFloat(inv.amount_paid).toFixed(2)}\n*PAYMENT METHOD:* ${inv.payment_method.toUpperCase().replace('_', ' ')}\n*STATUS:* PAID ✅\n----------------------------------\n*COLLECTOR:* ${inv.collector_name || activeUser}\n==================================\nThank you for choosing Khan Telecom!\n*Developed by Muhammad Irfan*`;
+            waTextRaw = `⚡ *KHAN TELECOM* ⚡\n_HIGH-SPEED BROADBAND PROVIDER_\n----------------------------------\n*RECEIPT NO:* ${inv.invoice_number}\n*DATE:* ${inv.paid_at || 'Just Now'}\n*SUBSCRIBER ID:* ${cust.customer_code}\n*NAME:* ${cust.full_name}\n*PHONE:* ${cust.phone_number}\n*AREA:* ${cust.area_sector}\n----------------------------------\n*PACKAGE:* ${pkg.package_name}\n*BILLING MONTH:* ${inv.billing_month}\n*AMOUNT DUE:* PKR ${parseFloat(inv.amount_due).toFixed(2)}\n*AMOUNT PAID:* PKR ${parseFloat(inv.amount_paid).toFixed(2)}\n*PAYMENT METHOD:* ${inv.payment_method.toUpperCase().replace('_', ' ')}\n*STATUS:* PAID ✅\n----------------------------------\n*COLLECTOR:* ${inv.collector_name || activeUser}\n==================================\nThank you for choosing Khan Telecom!`;
         }
 
         const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waTextRaw)}`;

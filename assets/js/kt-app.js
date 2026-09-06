@@ -969,7 +969,7 @@
                     $('#kt-sell-product-modal, #kt-modal-backdrop').hide();
 
                     var cleanPhone = (cust.phone_number || '').replace(/^0/, '92');
-                    var waTextRaw = '📦 *KHAN TELECOM HARDWARE EQUIPMENT RECEIPT* 📦\n----------------------------------\n*SUBSCRIBER:* ' + cust.full_name + ' (' + cust.customer_code + ')\n*ITEM BOUGHT:* ' + prod.product_name + '\n*QUANTITY:* ' + qty + ' ' + (prod.unit || 'pcs') + '\n*UNIT RETAIL PRICE:* PKR ' + parseFloat(prod.sale_price).toFixed(2) + '\n----------------------------------\n*TOTAL BILL:* PKR ' + totalBill + ' ✅\n==================================\nThank you for choosing Khan Telecom!\n*Developed by Muhammad Irfan*';
+                    var waTextRaw = '📦 *KHAN TELECOM HARDWARE EQUIPMENT RECEIPT* 📦\n----------------------------------\n*SUBSCRIBER:* ' + cust.full_name + ' (' + cust.customer_code + ')\n*ITEM BOUGHT:* ' + prod.product_name + '\n*QUANTITY:* ' + qty + ' ' + (prod.unit || 'pcs') + '\n*UNIT RETAIL PRICE:* PKR ' + parseFloat(prod.sale_price).toFixed(2) + '\n----------------------------------\n*TOTAL BILL:* PKR ' + totalBill + ' ✅\n==================================\nThank you for choosing Khan Telecom!';
                     var waLink = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(waTextRaw);
                     window.open(waLink, '_blank');
 
@@ -1965,7 +1965,7 @@
 
                     if (!isActive) {
                         var cleanPhone = (c.phone_number || '').replace(/^0/, '92');
-                        var alertTextRaw = '🚨 *KHAN TELECOM PACKAGE EXPIRY ALERT* 🚨\n----------------------------------\nDear Subscriber: *' + c.full_name + '*\nSubscriber ID: *' + c.customer_code + '*\nArea/Address: *' + (c.address || c.area_sector) + '*\n\n⚠️ Your Broadband Package (*' + (c.package_name || 'Premier-5') + '*) has *EXPIRED*.\nExpiration Date: *' + (c.expiry_date || 'N/A') + '*\n\n💡 Please renew your monthly package fee (PKR ' + (c.monthly_due || 1200) + ') to continue enjoying internet service.\n==================================\nContact Khan Telecom Office for instant renewal.\n*Developed by Muhammad Irfan*';
+                        var alertTextRaw = '🚨 *KHAN TELECOM PACKAGE EXPIRY ALERT* 🚨\n----------------------------------\nDear Subscriber: *' + c.full_name + '*\nSubscriber ID: *' + c.customer_code + '*\nArea/Address: *' + (c.address || c.area_sector) + '*\n\n⚠️ Your Broadband Package (*' + (c.package_name || 'Premier-5') + '*) has *EXPIRED*.\nExpiration Date: *' + (c.expiry_date || 'N/A') + '*\n\n💡 Please renew your monthly package fee (PKR ' + (c.monthly_due || 1200) + ') to continue enjoying internet service.\n==================================\nContact Khan Telecom Office for instant renewal.';
                         var waAlertUrl = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(alertTextRaw);
 
                         alertBtn = '<a href="' + waAlertUrl + '" target="_blank" class="btn btn-sm btn-whatsapp btn-send-alert-wa" title="Send WhatsApp Expiry Alert">🚨 WhatsApp</a>';
@@ -2731,11 +2731,10 @@
                     '</div>' +
                     '<div class="slip-footer">' +
                         '<p>Thank you for choosing Khan Telecom!</p>' +
-                        '<p class="slip-credits">Developed by Muhammad Irfan</p>' +
                     '</div>' +
                 '</div>';
 
-                waTextRaw = '⚡ *KHAN TELECOM* ⚡\n_HIGH-SPEED BROADBAND PROVIDER_\n----------------------------------\n*RECEIPT NO:* ' + inv.invoice_number + '\n*DATE:* ' + (inv.paid_at || 'Just Now') + '\n*SUBSCRIBER ID:* ' + inv.customer_code + '\n*NAME:* ' + inv.full_name + '\n*PHONE:* ' + inv.phone_number + '\n*AREA:* ' + inv.area_sector + '\n----------------------------------\n*BILLING MONTH:* ' + inv.billing_month + '\n*AMOUNT DUE:* PKR ' + parseFloat(inv.amount_due).toFixed(2) + '\n*AMOUNT PAID:* PKR ' + parseFloat(inv.amount_paid).toFixed(2) + '\n*PAYMENT METHOD:* ' + (inv.payment_method || 'cash').toUpperCase().replace('_', ' ') + '\n*STATUS:* ' + (inv.payment_status || 'PAID').toUpperCase() + ' ✅\n----------------------------------\n*COLLECTOR:* ' + (inv.collector_name || activeUser) + '\n==================================\nThank you for choosing Khan Telecom!\n*Developed by Muhammad Irfan*';
+                waTextRaw = '⚡ *KHAN TELECOM* ⚡\n_HIGH-SPEED BROADBAND PROVIDER_\n----------------------------------\n*RECEIPT NO:* ' + inv.invoice_number + '\n*DATE:* ' + (inv.paid_at || 'Just Now') + '\n*SUBSCRIBER ID:* ' + inv.customer_code + '\n*NAME:* ' + inv.full_name + '\n*PHONE:* ' + inv.phone_number + '\n*AREA:* ' + inv.area_sector + '\n----------------------------------\n*BILLING MONTH:* ' + inv.billing_month + '\n*AMOUNT DUE:* PKR ' + parseFloat(inv.amount_due).toFixed(2) + '\n*AMOUNT PAID:* PKR ' + parseFloat(inv.amount_paid).toFixed(2) + '\n*PAYMENT METHOD:* ' + (inv.payment_method || 'cash').toUpperCase().replace('_', ' ') + '\n*STATUS:* ' + (inv.payment_status || 'PAID').toUpperCase() + ' ✅\n----------------------------------\n*COLLECTOR:* ' + (inv.collector_name || activeUser) + '\n==================================\nThank you for choosing Khan Telecom!';
             } else {
                 htmlContent = '<div style="padding:20px; text-align:center;">Payment slip preview created.</div>';
                 waTextRaw = 'Thank you for your payment to Khan Telecom!';

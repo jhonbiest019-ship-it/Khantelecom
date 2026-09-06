@@ -102,7 +102,6 @@ class KT_App_Shell {
                     </form>
 
                     <div class="login-footer">
-                        <p>Developed by Muhammad Irfan</p>
                     </div>
                 </div>
             </div>
@@ -210,7 +209,6 @@ class KT_App_Shell {
                         
                         <div class="sidebar-footer">
                             <p>Khan Telecom v<?php echo KT_VERSION; ?></p>
-                            <p class="credits">Developed by Muhammad Irfan</p>
                         </div>
                     </aside>
 
@@ -229,7 +227,6 @@ class KT_App_Shell {
                 <!-- Footer Bar -->
                 <footer class="kt-app-footer">
                     <span>Khan Telecom ISP Engine &copy; <?php echo date('Y'); ?></span>
-                    <span class="footer-author">Developed by Muhammad Irfan</span>
                 </footer>
             </div>
 

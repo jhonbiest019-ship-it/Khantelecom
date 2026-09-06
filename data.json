@@ -2103,6 +2103,15 @@
   ],
   "activityLogs": [
     {
+      "id": 50,
+      "user_id": 1,
+      "user_name": "Muhammad%20Irfan",
+      "role_level": "super_admin",
+      "action_type": "bulk_import_subscribers",
+      "description": "Bulk imported member sheet: 0 new subscribers registered, 51 updated.",
+      "created_at": "9/6/2026, 10:28:55 PM"
+    },
+    {
       "id": 49,
       "user_id": 1,
       "user_name": "Muhammad%20Irfan",
