@@ -224,11 +224,6 @@ class KT_App_Shell {
                         </div>
                     </main>
                 </div>
-
-                <!-- Footer Bar -->
-                <footer class="kt-app-footer">
-                    <span>Khan Telecom ISP Engine &copy; <?php echo date('Y'); ?></span>
-                </footer>
             </div>
 
             <!-- Modals Container -->

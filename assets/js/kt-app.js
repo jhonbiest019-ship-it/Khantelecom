@@ -2562,7 +2562,7 @@
                         </p>
 
                         <div style="display:flex; flex-direction:column; gap:12px;">
-                            <button id="btn-detect-duplicates" class="btn btn-warning" style="font-weight:600;">🔁 Double Entry / Clean Duplicates</button>
+                            <button id="btn-detect-duplicates" onclick="KT_App.detectDuplicateSubscribers()" class="btn btn-warning" style="font-weight:600;">🔁 Double Entry / Clean Duplicates</button>
                             <button id="btn-export-db-json" class="btn btn-secondary">📥 Export Full Database JSON</button>
                             <label class="btn btn-secondary" style="margin:0; text-align:center; cursor:pointer;">
                                 📤 Restore Database JSON
@@ -2766,57 +2766,128 @@
         /* ==================== 9. DOUBLE ENTRY DUPLICATE DETECTION & CLEAN MERGE ==================== */
         detectDuplicateSubscribers: function() {
             var self = this;
+            $('#btn-detect-duplicates').html('⏳ Real-Time Scanning Database...').prop('disabled', true);
+
             this.fetchCustomers(function(customers) {
-                var groupsMap = {};
+                $('#btn-detect-duplicates').html('🔁 Double Entry / Clean Duplicates').prop('disabled', false);
 
-                customers.forEach(function(c) {
-                    var codeKey = (c.customer_code || '').trim().toLowerCase();
-                    var phoneKey = (c.phone_number || '').replace(/[^0-9]/g, '');
-                    var cnicKey = (c.cnic_id || '').replace(/[^0-9]/g, '');
-                    var nameAreaKey = ((c.full_name || '').trim() + '_' + (c.area_sector || c.address || '').trim()).toLowerCase();
+                if (!customers || customers.length === 0) {
+                    self.showToast('No subscriber records found to scan.', 'warning');
+                    return;
+                }
 
-                    var keyToUse = null;
-                    var criteriaLabel = '';
+                var parent = {};
+                function find(i) {
+                    if (parent[i] === undefined) parent[i] = i;
+                    if (parent[i] === i) return i;
+                    parent[i] = find(parent[i]);
+                    return parent[i];
+                }
+                function union(i, j) {
+                    var rootI = find(i);
+                    var rootJ = find(j);
+                    if (rootI !== rootJ) {
+                        parent[rootI] = rootJ;
+                    }
+                }
 
-                    if (codeKey && codeKey.length > 1) {
-                        keyToUse = 'code_' + codeKey;
-                        criteriaLabel = 'Subscriber Account Code: ' + c.customer_code;
-                    } else if (phoneKey && phoneKey.length >= 7) {
-                        keyToUse = 'phone_' + phoneKey;
-                        criteriaLabel = 'WhatsApp / Phone Number: ' + c.phone_number;
-                    } else if (cnicKey && cnicKey.length >= 10) {
-                        keyToUse = 'cnic_' + cnicKey;
-                        criteriaLabel = 'CNIC Identity ID: ' + c.cnic_id;
-                    } else if (nameAreaKey && nameAreaKey.length > 5) {
-                        keyToUse = 'name_' + nameAreaKey;
-                        criteriaLabel = 'Subscriber Name & Sector: ' + c.full_name + ' (' + (c.area_sector || 'General') + ')';
+                function normCode(val) {
+                    if (!val) return '';
+                    return (val + '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^kt/, '');
+                }
+
+                function normPhone(val) {
+                    if (!val) return '';
+                    var d = (val + '').replace(/[^0-9]/g, '');
+                    if (d.startsWith('92')) d = d.substring(2);
+                    if (d.startsWith('0')) d = d.substring(1);
+                    return d.length >= 7 ? d : '';
+                }
+
+                function normCnic(val) {
+                    if (!val) return '';
+                    var d = (val + '').replace(/[^0-9]/g, '');
+                    return d.length >= 8 ? d : '';
+                }
+
+                function normName(val) {
+                    if (!val) return '';
+                    return (val + '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                }
+
+                var codeMap = {};
+                var phoneMap = {};
+                var cnicMap = {};
+                var nameMap = {};
+                var matchReasons = {};
+
+                customers.forEach(function(c, idx) {
+                    var cId = c.id || ('idx_' + idx);
+                    parent[cId] = cId;
+
+                    var cCode = normCode(c.customer_code);
+                    var cPhone = normPhone(c.phone_number);
+                    var cCnic = normCnic(c.cnic_id);
+                    var cName = normName(c.full_name);
+
+                    if (cCode) {
+                        if (codeMap[cCode] !== undefined) {
+                            union(cId, codeMap[cCode]);
+                            matchReasons[find(cId)] = 'Account Code (' + (c.customer_code || cCode) + ')';
+                        } else {
+                            codeMap[cCode] = cId;
+                        }
                     }
 
-                    if (keyToUse) {
-                        if (!groupsMap[keyToUse]) {
-                            groupsMap[keyToUse] = {
-                                criteria: criteriaLabel,
-                                items: []
-                            };
+                    if (cPhone) {
+                        if (phoneMap[cPhone] !== undefined) {
+                            union(cId, phoneMap[cPhone]);
+                            if (!matchReasons[find(cId)]) matchReasons[find(cId)] = 'Phone Number (' + c.phone_number + ')';
+                        } else {
+                            phoneMap[cPhone] = cId;
                         }
-                        if (!groupsMap[keyToUse].items.some(function(item) { return item.id === c.id; })) {
-                            groupsMap[keyToUse].items.push(c);
+                    }
+
+                    if (cCnic) {
+                        if (cnicMap[cCnic] !== undefined) {
+                            union(cId, cnicMap[cCnic]);
+                            if (!matchReasons[find(cId)]) matchReasons[find(cId)] = 'CNIC Identity (' + c.cnic_id + ')';
+                        } else {
+                            cnicMap[cCnic] = cId;
+                        }
+                    }
+
+                    if (cName && cName.length >= 4) {
+                        if (nameMap[cName] !== undefined) {
+                            union(cId, nameMap[cName]);
+                            if (!matchReasons[find(cId)]) matchReasons[find(cId)] = 'Name & Profile (' + c.full_name + ')';
+                        } else {
+                            nameMap[cName] = cId;
                         }
                     }
                 });
 
+                var groupsByRoot = {};
+                customers.forEach(function(c, idx) {
+                    var cId = c.id || ('idx_' + idx);
+                    var root = find(cId);
+                    if (!groupsByRoot[root]) groupsByRoot[root] = [];
+                    groupsByRoot[root].push(c);
+                });
+
                 var duplicateGroups = [];
-                Object.keys(groupsMap).forEach(function(k) {
-                    if (groupsMap[k].items.length > 1) {
-                        var items = groupsMap[k].items;
+                Object.keys(groupsByRoot).forEach(function(root) {
+                    var items = groupsByRoot[root];
+                    if (items.length > 1) {
                         items.sort(function(a, b) {
                             var aScore = (self.isSubscriberActive(a) ? 100 : 0) + (a.cnic_id ? 10 : 0) + (a.assigned_ip_ipoe ? 10 : 0) + (parseInt(a.id) || 0);
                             var bScore = (self.isSubscriberActive(b) ? 100 : 0) + (b.cnic_id ? 10 : 0) + (b.assigned_ip_ipoe ? 10 : 0) + (parseInt(b.id) || 0);
                             return bScore - aScore;
                         });
 
+                        var reason = matchReasons[root] || 'Account / Phone / Name match';
                         duplicateGroups.push({
-                            criteria: groupsMap[k].criteria,
+                            criteria: reason,
                             primary: items[0],
                             duplicates: items.slice(1)
                         });
