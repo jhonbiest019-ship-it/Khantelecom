@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/css/kt-app.css?v=2.0.3">
+    <link rel="stylesheet" href="/assets/css/kt-app.css?v=2.1.0">
 </head>
 <body class="kt-app-body">
     <!-- App Shell Layout -->
@@ -38,7 +38,7 @@
                         <span class="user-role">SUPER ADMIN</span>
                     </div>
                 </div>
-                <button id="btn-open-change-pass-modal" class="btn btn-sm btn-secondary" title="Change Password">🔑 Password</button>
+                <button id="btn-open-change-pass-modal" onclick="KT_App.openChangePasswordModal()" class="btn btn-sm btn-secondary" title="Change Password">🔑 Password</button>
                 <button id="kt-logout-btn" class="btn btn-sm btn-outline-danger" title="Logout">Logout</button>
             </div>
         </header>
@@ -561,6 +561,6 @@
             nonce: 'demo_nonce'
         };
     </script>
-    <script src="/assets/js/kt-app.js?v=2.0.3"></script>
+    <script src="/assets/js/kt-app.js?v=2.1.0"></script>
 </body>
 </html>

@@ -295,6 +295,138 @@
             }
         },
 
+        
+        /* ==================== GLOBAL FAIL-PROOF MODAL TRIGGERS ==================== */
+        openCreateSubscriberModal: function() {
+            try {
+                this.populateCustomerAndPackageSelects();
+                if ($('#kt-customer-form').length) $('#kt-customer-form')[0].reset();
+                $('#kt-customer-form input[name="id"]').val(0);
+                var custs = this.getStoredCustomers();
+                var nextCode = 1001;
+                if (custs && custs.length > 0) {
+                    var codes = custs.map(function(c) {
+                        var m = (c.customer_code || '').match(/\d+/);
+                        return m ? parseInt(m[0]) : 0;
+                    });
+                    var maxC = Math.max.apply(null, codes);
+                    if (maxC && maxC >= 1000) nextCode = maxC + 1;
+                }
+                $('#kt-customer-form input[name="customer_code"]').val('KT-' + nextCode);
+                $('#customer-modal-title').text('Register New Subscriber');
+                $('#btn-delete-customer-modal').hide();
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-customer-modal').show().css('display', 'flex');
+            } catch(e) { console.error(e); }
+        },
+
+        openEditSubscriberModal: function(elem) {
+            try {
+                this.populateCustomerAndPackageSelects();
+                var data = $(elem).data('json');
+                if (typeof data === 'string') { try { data = JSON.parse(data); } catch(e) {} }
+                $('#kt-customer-form input[name="id"]').val(data.id);
+                $('#kt-customer-form input[name="customer_code"]').val(data.customer_code);
+                $('#kt-customer-form input[name="full_name"]').val(data.full_name);
+                $('#kt-customer-form input[name="phone_number"]').val(data.phone_number);
+                $('#kt-customer-form input[name="cnic_id"]').val(data.cnic_id);
+                $('#kt-customer-form input[name="area_sector"]').val(data.area_sector);
+                $('#kt-customer-form textarea[name="address"]').val(data.address);
+                $('#kt-customer-form select[name="package_id"]').val(data.package_id);
+                $('#kt-customer-form input[name="assigned_ip_ipoe"]').val(data.assigned_ip_ipoe);
+                $('#kt-customer-form select[name="connection_type"]').val(data.connection_type);
+                $('#kt-customer-form input[name="billing_cycle_day"]').val(data.billing_cycle_day);
+                $('#kt-customer-form select[name="status"]').val(data.status);
+                $('#customer-modal-title').text('Edit Subscriber Profile (' + data.customer_code + ')');
+                $('#btn-delete-customer-modal').show();
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-customer-modal').show().css('display', 'flex');
+            } catch(e) { console.error(e); }
+        },
+
+        openCreatePackageModal: function() {
+            try {
+                if ($('#kt-package-form').length) $('#kt-package-form')[0].reset();
+                $('#kt-package-form input[name="id"]').val(0);
+                $('#package-modal-title').text('Create Package Tier');
+                $('#pkg-margin-preview').text('PKR 1000.00');
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-package-modal').show().css('display', 'flex');
+            } catch(e) { console.error(e); }
+        },
+
+        openEditPackageModal: function(elem) {
+            try {
+                var p = $(elem).data('json');
+                if (typeof p === 'string') { try { p = JSON.parse(p); } catch(e) {} }
+                $('#kt-package-form input[name="id"]').val(p.id);
+                $('#kt-package-form input[name="package_name"]').val(p.package_name);
+                $('#kt-package-form input[name="speed_mbps"]').val(p.speed_mbps);
+                $('#kt-package-form input[name="cost_price"]').val(p.cost_price || 0);
+                $('#kt-package-form input[name="sale_price"]').val(p.sale_price);
+                $('#kt-package-form select[name="status"]').val(p.status || 'active');
+                var margin = Math.max(0, parseFloat(p.sale_price) - parseFloat(p.cost_price || 0));
+                $('#pkg-margin-preview').text('PKR ' + margin.toFixed(2));
+                $('#package-modal-title').text('Edit Package Tier');
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-package-modal').show().css('display', 'flex');
+            } catch(e) { console.error(e); }
+        },
+
+        openCreateProductModal: function() {
+            try {
+                if ($('#kt-product-form').length) $('#kt-product-form')[0].reset();
+                $('#kt-product-form input[name="id"]').val(0);
+                $('#product-modal-title').text('Buy / Add Hardware Product Stock');
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-product-modal').show().css('display', 'flex');
+            } catch(e) { console.error(e); }
+        },
+
+        openSellProductModal: function() {
+            try {
+                var prods = this.getStoredProducts();
+                var custs = this.getStoredCustomers();
+                var pOpts = '<option value="">-- Select Hardware Product --</option>';
+                prods.forEach(function(p) { pOpts += '<option value="' + p.id + '" data-price="' + p.sale_price + '">' + p.product_name + ' (Stock: ' + p.stock_qty + ' - PKR ' + p.sale_price + ')</option>'; });
+                $('#sell-product-select').html(pOpts);
+
+                var cOpts = '<option value="">-- Select Subscriber --</option>';
+                custs.forEach(function(c) { cOpts += '<option value="' + c.id + '">' + c.full_name + ' (' + c.customer_code + ')</option>'; });
+                $('#sell-customer-select').html(cOpts);
+
+                if ($('#kt-sell-product-form').length) $('#kt-sell-product-form')[0].reset();
+                $('#sell-unit-price').val('PKR 0.00');
+                $('#sell-total-preview').text('PKR 0.00');
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-sell-product-modal').show().css('display', 'flex');
+            } catch(e) { console.error(e); }
+        },
+
+        openCreateInvoiceModal: function() {
+            try {
+                var custs = this.getStoredCustomers();
+                var opts = '<option value="">-- Select Subscriber --</option>';
+                custs.forEach(function(c) { opts += '<option value="' + c.id + '">' + c.full_name + ' (' + c.customer_code + ' - ' + c.area_sector + ')</option>'; });
+                $('#invoice-customer-select').html(opts);
+                if ($('#kt-invoice-form').length) $('#kt-invoice-form')[0].reset();
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-invoice-modal').show().css('display', 'flex');
+            } catch(e) { console.error(e); }
+        },
+
+        openChangePasswordModal: function() {
+            try {
+                var u = this.getUserSession();
+                if ($('#kt-change-password-form').length) $('#kt-change-password-form')[0].reset();
+                $('#change-pass-username').val(u.user_login || 'saif');
+                $('#change-pass-new, #change-pass-confirm').attr('type', 'password');
+                $('.btn-toggle-pass').text('👁️');
+                $('#kt-modal-backdrop').show().css('display', 'block');
+                $('#kt-change-password-modal').show().css('display', 'flex');
+            } catch(e) { console.error(e); }
+        },
+
         bindModals: function() {
             var self = this;
             $(document).on('click', '.modal-close, #kt-modal-backdrop', function() {
@@ -782,7 +914,7 @@
                         </div>
                         <div class="metric-icon">⚠️</div>
                     </div>
-                    <div id="financial-profit-card" class="metric-card metric-card-clickable" data-view="packages" data-filter="" style="display:none; border-color: var(--accent);" title="Click to view ISP Packages">
+                    <div id="financial-profit-card" class="metric-card metric-card-clickable" data-view="packages" data-filter="" style="display:flex; border-color: var(--accent);" title="Click to view ISP Packages">
                         <div class="metric-info">
                             <h3>Net Profit Margin</h3>
                             <div id="dash-net-profit" class="metric-value" style="color:#a371f7;">PKR --</div>
@@ -836,7 +968,7 @@
 
             var user = this.getUserSession();
             if (user.permissions && user.permissions.can_view_financials) {
-                $('#financial-profit-card').css('display', 'flex');
+                $('#financial-profit-card').show().css('display', 'flex');
                 $('#dash-net-profit').text('PKR ' + (monthlyRev * 0.45).toLocaleString('en-US', {minimumFractionDigits: 2}));
             } else {
                 $('#financial-profit-card').hide();
@@ -1128,8 +1260,8 @@
                         <p style="font-size:12px; color: var(--text-muted);">Manage routers, fiber cables, connectors, and equipment sales to subscribers.</p>
                     </div>
                     <div style="display:flex; gap:10px;">
-                        <button id="btn-add-product" class="btn btn-primary">➕ Buy / Add Stock Entry</button>
-                        <button id="btn-sell-product-modal-open" class="btn btn-success">🛒 Sell Hardware to Subscriber</button>
+                        <button id="btn-add-product" onclick="KT_App.openCreateProductModal()" class="btn btn-primary">➕ Buy / Add Stock Entry</button>
+                        <button id="btn-sell-product-modal-open" onclick="KT_App.openSellProductModal()" class="btn btn-success">🛒 Sell Hardware to Subscriber</button>
                     </div>
                 </div>
 
@@ -1224,7 +1356,7 @@
                         <h2 class="section-title">Invoices & Field Fee Recovery</h2>
                         <p style="font-size:12px; color: var(--text-muted);">Generate billing slips, collect payments, and dispatch WhatsApp receipts.</p>
                     </div>
-                    <button id="btn-create-invoice" class="btn btn-primary">📄 Generate Invoice</button>
+                    <button id="btn-create-invoice" onclick="KT_App.openCreateInvoiceModal()" class="btn btn-primary">📄 Generate Invoice</button>
                 </div>
 
                 <div class="filter-bar" style="margin-bottom: 16px;">
